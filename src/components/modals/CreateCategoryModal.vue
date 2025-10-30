@@ -163,7 +163,8 @@ const initializeForm = () => {
   if (props.category) {
     form.name = props.category.name
     form.description = props.category.description || ''
-    form.parentId = props.category.parentId || ''
+    // L'API renvoie parent.id au lieu de parentId
+    form.parentId = props.category.parent?.id || ''
   } else {
     form.name = ''
     form.description = ''
@@ -184,7 +185,8 @@ watch(() => props.category, () => {
 watch(() => categories.value, () => {
   if (categories.value && props.category) {
     // Réinitialiser seulement le parentId pour s'assurer qu'il est correctement sélectionné
-    form.parentId = props.category.parentId || ''
+    // L'API renvoie parent.id au lieu de parentId
+    form.parentId = props.category.parent?.id || ''
     console.log('Catégorie parente sélectionnée:', form.parentId, 'pour la catégorie:', props.category.name)
   }
 }, { immediate: true })
