@@ -38,7 +38,7 @@ import CreateCategoryModal from '@/components/modals/CreateCategoryModal.vue'
 </script>
 ```
 
-### Template
+### Template - Mode Création
 
 ```vue
 <template>
@@ -48,7 +48,7 @@ import CreateCategoryModal from '@/components/modals/CreateCategoryModal.vue'
       Créer une catégorie
     </button>
 
-    <!-- Modal -->
+    <!-- Modal de création -->
     <CreateCategoryModal
       v-if="showModal"
       @close="showModal = false"
@@ -58,7 +58,28 @@ import CreateCategoryModal from '@/components/modals/CreateCategoryModal.vue'
 </template>
 ```
 
-### Script
+### Template - Mode Édition
+
+```vue
+<template>
+  <div>
+    <!-- Bouton pour ouvrir le modal d'édition -->
+    <button @click="openEditModal(category)" class="btn btn-secondary">
+      Modifier
+    </button>
+
+    <!-- Modal d'édition -->
+    <CreateCategoryModal
+      v-if="showEditModal && selectedCategory"
+      :category="selectedCategory"
+      @close="showEditModal = false"
+      @updated="handleCategoryUpdated"
+    />
+  </div>
+</template>
+```
+
+### Script - Mode Création
 
 ```vue
 <script setup lang="ts">
@@ -68,15 +89,39 @@ const showModal = ref(false)
 
 const handleCategoryCreated = () => {
   showModal.value = false
-  // Les données seront automatiquement rechargées par Vue Query
   console.log('Catégorie créée avec succès!')
+}
+</script>
+```
+
+### Script - Mode Édition
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import type { Category } from '@/types'
+
+const showEditModal = ref(false)
+const selectedCategory = ref<Category | null>(null)
+
+const openEditModal = (category: Category) => {
+  selectedCategory.value = category
+  showEditModal.value = true
+}
+
+const handleCategoryUpdated = () => {
+  showEditModal.value = false
+  selectedCategory.value = null
+  console.log('Catégorie modifiée avec succès!')
 }
 </script>
 ```
 
 ## Props
 
-Le composant n'accepte pas de props. Il utilise les données des catégories existantes via le composable `useCategories()`.
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `category` | `Category` | No | Catégorie à modifier (pour le mode édition). Si fournie, le formulaire s'ouvre en mode édition avec les champs pré-remplis. |
 
 ## Events
 
@@ -84,6 +129,7 @@ Le composant n'accepte pas de props. Il utilise les données des catégories exi
 |-------|-------------|---------|
 | `close` | Émis quand le modal est fermé | `void` |
 | `created` | Émis quand une catégorie est créée avec succès | `void` |
+| `updated` | Émis quand une catégorie est modifiée avec succès | `void` |
 
 ## Structure des Données
 

@@ -4,7 +4,9 @@
       <!-- Header -->
       <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-medium text-gray-900">Créer une nouvelle catégorie</h3>
+          <h3 class="text-lg font-medium text-gray-900">
+            {{ isEditMode ? 'Modifier la catégorie' : 'Créer une nouvelle catégorie' }}
+          </h3>
           <button
             @click="handleClose"
             class="text-gray-400 hover:text-gray-600 transition-colors"
@@ -109,9 +111,9 @@
           >
             <span v-if="isSubmitting" class="flex items-center justify-center space-x-2">
               <div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-              <span>Création...</span>
+              <span>{{ isEditMode ? 'Modification...' : 'Création...' }}</span>
             </span>
-            <span v-else>Créer la catégorie</span>
+            <span v-else>{{ isEditMode ? 'Modifier la catégorie' : 'Crée la catégorie' }}</span>
           </button>
         </div>
       </div>
@@ -120,21 +122,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
-import { useCategories, useCreateCategory } from '@/composables/useCategories'
-import type { CreateCategoryDto, Category } from '@/types'
+import { useCategories, useCreateCategory, useUpdateCategory } from '@/composables/useCategories'
+import type { CreateCategoryDto, UpdateCategoryDto, Category } from '@/types'
 
-const emit = defineEmits<{ (e: 'close'): void; (e: 'created'): void }>()
+// Props
+const props = defineProps<{
+  category?: Category // Catégorie à modifier (optionnelle)
+}>()
+
+const emit = defineEmits<{ 
+  (e: 'close'): void
+  (e: 'created'): void
+  (e: 'updated'): void
+}>()
 
 // Queries
 const { data: categories } = useCategories()
 
 // Mutations
 const createCategoryMutation = useCreateCategory()
+const updateCategoryMutation = useUpdateCategory()
 
 // État du formulaire
 const isSubmitting = ref(false)
+
+// Mode édition
+const isEditMode = computed(() => !!props.category)
 
 // Données du formulaire
 const form = reactive<CreateCategoryDto>({
@@ -142,6 +157,28 @@ const form = reactive<CreateCategoryDto>({
   description: '',
   parentId: ''
 })
+
+// Pré-remplir le formulaire en mode édition
+const initializeForm = () => {
+  if (props.category) {
+    form.name = props.category.name
+    form.description = props.category.description || ''
+    form.parentId = props.category.parentId || ''
+  } else {
+    form.name = ''
+    form.description = ''
+    form.parentId = ''
+  }
+}
+
+// Initialiser le formulaire au montage et quand la catégorie change
+onMounted(() => {
+  initializeForm()
+})
+
+watch(() => props.category, () => {
+  initializeForm()
+}, { immediate: true })
 
 // Erreurs de validation
 const errors = reactive({
@@ -224,21 +261,38 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   
   try {
-    const categoryData: CreateCategoryDto = {
-      name: form.name.trim(),
-      description: form.description.trim() || undefined,
-      parentId: form.parentId || undefined
+    if (isEditMode.value && props.category) {
+      // Mode édition
+      const updateData: UpdateCategoryDto = {
+        name: form.name.trim(),
+        description: form.description.trim() || undefined,
+        parentId: form.parentId || undefined
+      }
+      
+      await updateCategoryMutation.mutateAsync({
+        id: props.category.id,
+        data: updateData
+      })
+      
+      emit('updated')
+    } else {
+      // Mode création
+      const categoryData: CreateCategoryDto = {
+        name: form.name.trim(),
+        description: form.description.trim() || undefined,
+        parentId: form.parentId || undefined
+      }
+      
+      await createCategoryMutation.mutateAsync(categoryData)
+      
+      emit('created')
     }
     
-    await createCategoryMutation.mutateAsync(categoryData)
-    
-    // Succès
-    emit('created')
     handleClose()
     
   } catch (error) {
-    console.error('Erreur lors de la création de la catégorie:', error)
-    alert('Erreur lors de la création de la catégorie. Veuillez réessayer.')
+    console.error(`Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de la catégorie:`, error)
+    alert(`Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de la catégorie. Veuillez réessayer.`)
   } finally {
     isSubmitting.value = false
   }
@@ -247,9 +301,7 @@ const handleSubmit = async () => {
 // Fermer le modal
 const handleClose = () => {
   // Réinitialiser le formulaire
-  form.name = ''
-  form.description = ''
-  form.parentId = ''
+  initializeForm()
   errors.name = ''
   
   emit('close')

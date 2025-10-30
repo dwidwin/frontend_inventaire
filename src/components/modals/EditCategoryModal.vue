@@ -1,10 +1,15 @@
 <template>
-  <div></div>
+  <CreateCategoryModal
+    :category="category"
+    @close="$emit('close')"
+    @updated="$emit('updated')"
+  />
 </template>
+
 <script setup lang="ts">
 import type { Category } from '@/types'
+import CreateCategoryModal from './CreateCategoryModal.vue'
+
 defineProps<{ category: Category }>()
-const emit = defineEmits<{ (e: 'close'): void; (e: 'updated'): void }>()
+defineEmits<{ (e: 'close'): void; (e: 'updated'): void }>()
 </script>
-
-

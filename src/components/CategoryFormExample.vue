@@ -10,7 +10,7 @@
     <!-- Boutons de démonstration -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
       <button
-        @click="showCreateModal = true"
+        @click="openCreateModal"
         class="btn btn-primary flex items-center justify-center space-x-2"
       >
         <PlusIcon class="w-5 h-5" />
@@ -18,7 +18,7 @@
       </button>
       
       <button
-        @click="showCreateModal = true"
+        @click="openCreateModal"
         class="btn btn-secondary flex items-center justify-center space-x-2"
       >
         <PlusIcon class="w-5 h-5" />
@@ -26,7 +26,7 @@
       </button>
       
       <button
-        @click="showCreateModal = true"
+        @click="openCreateModal"
         class="btn btn-success flex items-center justify-center space-x-2"
       >
         <PlusIcon class="w-5 h-5" />
@@ -91,8 +91,16 @@
                 </p>
               </div>
             </div>
-            <div class="text-sm text-gray-500">
-              {{ formatDate(category.createdAt) }}
+            <div class="flex items-center space-x-3">
+              <div class="text-sm text-gray-500">
+                {{ formatDate(category.createdAt) }}
+              </div>
+              <button
+                @click="openEditModal(category)"
+                class="text-primary-600 hover:text-primary-900 text-sm font-medium"
+              >
+                Modifier
+              </button>
             </div>
           </div>
         </div>
@@ -105,6 +113,14 @@
       @close="showCreateModal = false"
       @created="handleCategoryCreated"
     />
+    
+    <!-- Modal d'édition -->
+    <CreateCategoryModal
+      v-if="showEditModal && selectedCategory"
+      :category="selectedCategory"
+      @close="showEditModal = false"
+      @updated="handleCategoryUpdated"
+    />
   </div>
 </template>
 
@@ -114,17 +130,35 @@ import { PlusIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { useCategories } from '@/composables/useCategories'
 import CreateCategoryModal from '@/components/modals/CreateCategoryModal.vue'
 import { formatDate } from '@/utils/formatDate'
+import type { Category } from '@/types'
 
 // Queries
 const { data: categories, isLoading } = useCategories()
 
 // État local
 const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const selectedCategory = ref<Category | null>(null)
 
 // Actions
+const openCreateModal = () => {
+  selectedCategory.value = null
+  showCreateModal.value = true
+}
+
+const openEditModal = (category: Category) => {
+  selectedCategory.value = category
+  showEditModal.value = true
+}
+
 const handleCategoryCreated = () => {
   showCreateModal.value = false
-  // Les données seront automatiquement rechargées par Vue Query
   console.log('Catégorie créée avec succès!')
+}
+
+const handleCategoryUpdated = () => {
+  showEditModal.value = false
+  selectedCategory.value = null
+  console.log('Catégorie modifiée avec succès!')
 }
 </script>
