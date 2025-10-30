@@ -163,8 +163,11 @@ const initializeForm = () => {
   if (props.category) {
     form.name = props.category.name
     form.description = props.category.description || ''
-    // L'API renvoie parent.id au lieu de parentId
-    form.parentId = props.category.parent?.id || ''
+    // Résoudre le parentId soit via parent.id direct, soit via la liste complète
+    const resolvedParentId =
+      props.category.parent?.id ||
+      (categories.value?.find((c) => c.id === props.category!.id)?.parent?.id ?? '')
+    form.parentId = resolvedParentId || ''
   } else {
     form.name = ''
     form.description = ''
@@ -185,9 +188,12 @@ watch(() => props.category, () => {
 watch(() => categories.value, () => {
   if (categories.value && props.category) {
     // Réinitialiser seulement le parentId pour s'assurer qu'il est correctement sélectionné
-    // L'API renvoie parent.id au lieu de parentId
-    form.parentId = props.category.parent?.id || ''
-    console.log('Catégorie parente sélectionnée:', form.parentId, 'pour la catégorie:', props.category.name)
+    // L'API renvoie parent.id au lieu de parentId; résoudre via la liste si nécessaire
+    const resolvedParentId =
+      props.category.parent?.id ||
+      (categories.value.find((c) => c.id === props.category!.id)?.parent?.id ?? '')
+    form.parentId = resolvedParentId || ''
+    console.log('Catégorie parente sélectionnée:', form.parentId || '<empty string>', 'pour la catégorie:', props.category.name)
   }
 }, { immediate: true })
 
