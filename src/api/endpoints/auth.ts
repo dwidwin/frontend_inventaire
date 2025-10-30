@@ -1,4 +1,4 @@
-import { apiPost } from '@/api/client'
+import { apiPost, apiGet } from '@/api/client'
 import type { User, LoginDto, AuthResponse } from '@/types'
 
 export const authApi = {
@@ -14,6 +14,6 @@ export const authApi = {
 
   // Profil utilisateur actuel
   me: (): Promise<User> => {
-    return apiPost<User>('/api/auth/me')
+    return apiGet<User>('/api/auth/me')
   },
 }

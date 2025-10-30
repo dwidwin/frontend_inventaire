@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { apiPost } from '@/api/client'
+import { apiPost, apiGet } from '@/api/client'
 import type { User, LoginDto, AuthResponse } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -41,7 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!accessToken.value) return
     
     try {
-      const response = await apiPost<User>('/api/auth/me')
+      const response = await apiGet<User>('/api/auth/me')
       user.value = response
     } catch (error) {
       console.error('Erreur lors de la récupération du profil:', error)
