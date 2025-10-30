@@ -5,7 +5,7 @@ import type { Item, CreateItemDto, UpdateItemDto, MoveItemDto, ItemHistoryEntry 
 export const useItems = () => {
   return useQuery({
     queryKey: ['items'],
-    queryFn: () => itemsApi.list(),
+    queryFn: async () => (await itemsApi.list()).filter((i: any) => i && i.id),
   })
 }
 

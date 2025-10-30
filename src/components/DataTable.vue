@@ -205,7 +205,7 @@ const sortOrder = ref<'asc' | 'desc'>('asc')
 
 // Données filtrées
 const filteredData = computed(() => {
-  let result = [...props.data]
+  let result = (props.data ?? []).filter(Boolean)
   
   // Recherche
   if (searchQuery.value) {
@@ -253,10 +253,18 @@ const hasActions = computed(() => props.showEdit || props.showDelete || !!$slots
 
 // Utilitaires
 const getItemKey = (item: any, index: number) => {
+  if (!item) return index
   if (typeof props.itemKey === 'function') {
-    return props.itemKey(item)
+    try {
+      const key = props.itemKey(item)
+      return key ?? index
+    } catch {
+      return index
+    }
   }
-  return item[props.itemKey] || index
+  const key = props.itemKey as string
+  const value = item?.[key]
+  return value ?? index
 }
 
 const getNestedValue = (obj: any, path: string) => {
