@@ -71,7 +71,7 @@
       </template>
 
       <template #actions="{ item }">
-        <div class="flex items-center space-x-2">
+        <div v-if="item && item.id" class="flex items-center space-x-2">
           <RouterLink
             :to="`/items/${item.id}`"
             class="text-primary-600 hover:text-primary-900 text-sm"
