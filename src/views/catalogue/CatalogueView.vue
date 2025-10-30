@@ -221,20 +221,30 @@ const categoryTree = computed(() => {
   const list = categories.value || []
   if (!list.length) return [] as Category[]
 
+  // Si l'API fournit déjà l'arborescence avec children populés,
+  // on ne prend que les catégories racines (sans parent)
+  const hasAnyChildren = list.some((c) => c.children && c.children.length)
+  if (hasAnyChildren) {
+    const roots = list.filter((c) => !c.parentId && !c.parent)
+    
+    // Trier par nom (racines et enfants)
+    const sortDeep = (nodes: Category[]) => {
+      nodes.sort((a, b) => a.name.localeCompare(b.name))
+      nodes.forEach((n) => n.children && sortDeep(n.children))
+    }
+    sortDeep(roots)
+    return roots
+  }
+
+  // Sinon, reconstruire via parentId (logique de fallback)
   const idToNode = new Map<string, Category>()
-  // clone superficiel pour ne pas muter les données de requête
   list.forEach((c) => idToNode.set(c.id, { ...c, children: c.children ? [...c.children] : [] }))
 
-  // Si children déjà fournis par l'API, supposons l'arbre déjà prêt
-  const hasAnyChildren = list.some((c) => c.children && c.children.length)
-  if (hasAnyChildren) return list.filter((c) => !c.parentId)
-
-  // Sinon, reconstruire via parentId
   const roots: Category[] = []
-  const processed = new Set<string>() // Pour éviter les doublons
+  const processed = new Set<string>()
   
   idToNode.forEach((node) => {
-    if (processed.has(node.id)) return // Éviter les doublons
+    if (processed.has(node.id)) return
     
     if (node.parentId) {
       const parent = idToNode.get(node.parentId)
@@ -243,7 +253,6 @@ const categoryTree = computed(() => {
         parent.children.push(node)
         processed.add(node.id)
       } else {
-        // Parent introuvable, traiter comme racine seulement si pas déjà traité
         if (!processed.has(node.id)) {
           roots.push(node)
           processed.add(node.id)
@@ -255,27 +264,12 @@ const categoryTree = computed(() => {
     }
   })
 
-  // Trier par nom (racines et enfants)
   const sortDeep = (nodes: Category[]) => {
     nodes.sort((a, b) => a.name.localeCompare(b.name))
     nodes.forEach((n) => n.children && sortDeep(n.children))
   }
   sortDeep(roots)
-  // Supprimer les doublons par nom: si une catégorie racine a le même nom
-  // qu'une sous-catégorie ailleurs, on n'affiche que la version imbriquée.
-  const childNameSet = new Set<string>()
-  const collectChildNames = (nodes: Category[]) => {
-    nodes.forEach((n) => {
-      if (n.children && n.children.length) {
-        n.children.forEach((ch) => childNameSet.add(ch.name))
-        collectChildNames(n.children)
-      }
-    })
-  }
-  collectChildNames(roots)
-
-  const filteredRoots = roots.filter((r) => !childNameSet.has(r.name))
-  return filteredRoots
+  return roots
 })
 
 const categoryRoots = categoryTree
