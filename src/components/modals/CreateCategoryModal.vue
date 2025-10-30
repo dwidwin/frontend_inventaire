@@ -265,9 +265,12 @@ const handleSubmit = async () => {
       // Mode édition
       const updateData: UpdateCategoryDto = {
         name: form.name.trim(),
-        description: form.description.trim() || undefined,
-        parentId: form.parentId || undefined
+        description: form.description.trim(),
+        parentId: form.parentId || null
       }
+      
+      // Debug: Afficher les données envoyées
+      console.log('Données de mise à jour envoyées:', updateData)
       
       await updateCategoryMutation.mutateAsync({
         id: props.category.id,
