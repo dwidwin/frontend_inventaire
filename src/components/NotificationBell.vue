@@ -51,7 +51,7 @@
                   {{ notification.message }}
                 </p>
                 <p class="mt-1 text-xs text-gray-500">
-                  {{ formatDate(notification.createdAt) }}
+                  {{ formatDateTime(notification.createdAt) }}
                 </p>
               </div>
               <div v-if="!notification.readAt" class="ml-2">
@@ -78,8 +78,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { BellIcon } from '@heroicons/vue/24/outline'
 import { useNotifications, useUnreadNotificationsCount, useMarkNotificationAsRead } from '@/composables/useNotifications'
-import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { formatDateTime } from '@/utils/formatDate'
 
 // État local
 const dropdownOpen = ref(false)
@@ -98,10 +97,7 @@ const markAsRead = async (id: string) => {
   }
 }
 
-// Formater la date
-const formatDate = (date: string) => {
-  return format(new Date(date), 'dd/MM/yyyy HH:mm', { locale: fr })
-}
+// Le formatage de date est maintenant importé depuis @/utils/formatDate
 
 // Fermer le dropdown au clic extérieur
 const handleClickOutside = (event: Event) => {

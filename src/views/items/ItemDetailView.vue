@@ -180,8 +180,7 @@ import { useItem, useItemHistory } from '@/composables/useItems'
 import { useQuery } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
 import { statusesApi } from '@/api/endpoints/statuses'
-import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { formatDate, formatDateTime } from '@/utils/formatDate'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ActivityItem from '@/components/ActivityItem.vue'
 
@@ -217,8 +216,5 @@ const currentAssignment = computed(() => {
   return assignments.value?.find(a => !a.endAt)
 })
 
-// Utilitaires
-const formatDate = (date: string) => {
-  return format(new Date(date), 'dd/MM/yyyy HH:mm', { locale: fr })
-}
+// Les utilitaires de formatage sont maintenant importés depuis @/utils/formatDate
 </script>

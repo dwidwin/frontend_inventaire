@@ -18,7 +18,7 @@
         {{ notification.message }}
       </p>
       <p class="mt-1 text-xs text-gray-500">
-        {{ formatDate(notification.createdAt) }}
+        {{ formatDateTime(notification.createdAt) }}
       </p>
     </div>
     <div class="ml-3 flex-shrink-0">
@@ -38,8 +38,7 @@
 
 <script setup lang="ts">
 import { BellIcon } from '@heroicons/vue/24/outline'
-import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { formatDateTime } from '@/utils/formatDate'
 import type { Notification } from '@/types'
 
 interface Props {
@@ -52,8 +51,5 @@ defineEmits<{
   'mark-read': [id: string]
 }>()
 
-// Formater la date
-const formatDate = (date: string) => {
-  return format(new Date(date), 'dd/MM/yyyy HH:mm', { locale: fr })
-}
+// Le formatage de date est maintenant importé depuis @/utils/formatDate
 </script>

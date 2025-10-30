@@ -20,7 +20,19 @@ export const useItem = (id: string) => {
 export const useItemHistory = (id: string) => {
   return useQuery({
     queryKey: ['items', id, 'history'],
-    queryFn: () => itemsApi.getHistory(id),
+    queryFn: async () => {
+      try {
+        return await itemsApi.getHistory(id)
+      } catch (error: any) {
+        // Si 404, retourner un tableau vide au lieu de faire échouer la query
+        if (error?.response?.status === 404) {
+          console.warn(`Historique introuvable pour l'item ${id}`)
+          return []
+        }
+        // Pour les autres erreurs, les laisser remonter
+        throw error
+      }
+    },
     enabled: !!id,
   })
 }

@@ -1,14 +1,36 @@
-import { format } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
-export const formatDate = (date: string | Date, formatString: string = 'dd/MM/yyyy HH:mm') => {
-  return format(new Date(date), formatString, { locale: fr })
+// Fonction utilitaire pour valider et formater une date de manière sécurisée
+const safeFormatDate = (date: string | Date | null | undefined, formatString: string): string => {
+  if (!date) {
+    return 'Date inconnue'
+  }
+  
+  const dateObj = new Date(date)
+  if (!isValid(dateObj)) {
+    return 'Date inconnue'
+  }
+  
+  try {
+    return format(dateObj, formatString, { locale: fr })
+  } catch (error) {
+    console.warn('Erreur lors du formatage de la date:', error)
+    return 'Date inconnue'
+  }
 }
 
-export const formatDateShort = (date: string | Date) => {
-  return format(new Date(date), 'dd/MM/yyyy', { locale: fr })
+// Format par défaut : dd-MM-yyyy (sans heure)
+export const formatDate = (date: string | Date | null | undefined) => {
+  return safeFormatDate(date, 'dd-MM-yyyy')
 }
 
-export const formatDateTime = (date: string | Date) => {
-  return format(new Date(date), 'dd/MM/yyyy HH:mm', { locale: fr })
+// Format court : dd-MM-yyyy (sans heure) - alias pour formatDate
+export const formatDateShort = (date: string | Date | null | undefined) => {
+  return safeFormatDate(date, 'dd-MM-yyyy')
+}
+
+// Format avec heure : dd-MM-yyyy HH:mm (pour historique)
+export const formatDateTime = (date: string | Date | null | undefined) => {
+  return safeFormatDate(date, 'dd-MM-yyyy HH:mm')
 }

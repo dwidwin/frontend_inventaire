@@ -12,7 +12,7 @@
         <span v-if="activity.entityName" class="font-medium">{{ activity.entityName }}</span>
       </p>
       <p class="text-xs text-gray-500">
-        {{ formatDate(activity.createdAt) }}
+        {{ formatDateTime(activity.createdAt) }}
       </p>
     </div>
   </div>
@@ -28,8 +28,7 @@ import {
   UserGroupIcon,
   ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
-import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { formatDateTime } from '@/utils/formatDate'
 import type { AuditLog } from '@/types'
 
 interface Props {
@@ -67,8 +66,5 @@ const getActionDescription = (action: string) => {
   return actionMap[action] || 'a effectué une action sur'
 }
 
-// Formater la date
-const formatDate = (date: string) => {
-  return format(new Date(date), 'dd/MM/yyyy HH:mm', { locale: fr })
-}
+// Le formatage de date est maintenant importé depuis @/utils/formatDate
 </script>
