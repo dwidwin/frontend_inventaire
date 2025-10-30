@@ -56,7 +56,7 @@ apiClient.interceptors.response.use(
       
       try {
         // Tenter de rafraîchir le token
-        await authStore.refreshToken()
+        await authStore.refreshAccessToken()
         
         // Retry la requête originale avec le nouveau token
         originalRequest.headers.Authorization = `Bearer ${authStore.accessToken}`
@@ -103,7 +103,7 @@ uploadClient.interceptors.response.use(
       const authStore = useAuthStore()
       
       try {
-        await authStore.refreshToken()
+        await authStore.refreshAccessToken()
         originalRequest.headers.Authorization = `Bearer ${authStore.accessToken}`
         return uploadClient(originalRequest)
       } catch (refreshError) {
