@@ -239,7 +239,7 @@ const paginatedData = computed(() => {
   
   const start = (currentPage.value - 1) * props.pageSize
   const end = start + props.pageSize
-  return filteredData.value.slice(start, end)
+  return filteredData.value.slice(start, end).filter(Boolean)
 })
 
 // Pagination info
