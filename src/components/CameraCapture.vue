@@ -75,9 +75,30 @@
       <!-- Contrôles en bas -->
       <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
         <div class="flex justify-center space-x-4">
-          <!-- Bouton capture -->
+          <!-- Boutons de sélection de source -->
+          <div v-if="!capturedImage && !error && !isLoading" class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+            <!-- Bouton galerie -->
+            <button
+              @click="selectFromGallery"
+              class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center space-x-2"
+            >
+              <PhotoIcon class="w-5 h-5" />
+              <span>Galerie</span>
+            </button>
+            
+            <!-- Bouton capture -->
+            <button
+              @click="startCamera"
+              class="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center space-x-2"
+            >
+              <CameraIcon class="w-5 h-5" />
+              <span>Caméra</span>
+            </button>
+          </div>
+
+          <!-- Bouton capture direct -->
           <button
-            v-if="!capturedImage && !error"
+            v-if="!capturedImage && !error && isLoading"
             @click="capturePhoto"
             :disabled="isLoading"
             class="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
@@ -105,12 +126,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Input file caché pour sélection galerie -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept="image/*"
+      capture="environment"
+      class="hidden"
+      @change="handleFileSelect"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { XMarkIcon, CameraIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, CameraIcon, ExclamationTriangleIcon, PhotoIcon } from '@heroicons/vue/24/outline'
 
 const emit = defineEmits<{
   captured: [file: File]
@@ -120,6 +151,7 @@ const emit = defineEmits<{
 // Refs
 const videoRef = ref<HTMLVideoElement>()
 const canvasRef = ref<HTMLCanvasElement>()
+const fileInputRef = ref<HTMLInputElement>()
 
 // État
 const isLoading = ref(false)
@@ -156,6 +188,43 @@ const startCamera = async () => {
   }
 }
 
+// Sélectionner depuis la galerie
+const selectFromGallery = () => {
+  if (fileInputRef.value) {
+    fileInputRef.value.click()
+  }
+}
+
+// Gérer la sélection de fichier
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  
+  if (file) {
+    // Vérifier que c'est bien une image
+    if (!file.type.startsWith('image/')) {
+      error.value = 'Veuillez sélectionner un fichier image valide.'
+      return
+    }
+    
+    // Vérifier la taille (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      error.value = 'L\'image est trop volumineuse. Taille maximum : 10MB.'
+      return
+    }
+    
+    // Créer une prévisualisation
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      capturedImage.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+    
+    // Stocker le fichier pour la confirmation
+    ;(file as any).originalFile = file
+  }
+}
+
 // Capturer la photo
 const capturePhoto = () => {
   if (!videoRef.value || !canvasRef.value) return
@@ -188,10 +257,34 @@ const retakePhoto = () => {
   if (capturedImage.value) {
     URL.revokeObjectURL(capturedImage.value)
   }
+  
+  // Réinitialiser l'input file
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+  
+  // Arrêter la caméra si elle était active
+  if (stream.value) {
+    stream.value.getTracks().forEach(track => track.stop())
+    stream.value = undefined
+  }
 }
 
 // Confirmer la capture
 const confirmCapture = () => {
+  // Si c'est une image sélectionnée depuis la galerie
+  if (fileInputRef.value?.files?.[0]) {
+    const originalFile = fileInputRef.value.files[0]
+    emit('captured', originalFile)
+    
+    // Nettoyer l'URL
+    if (capturedImage.value) {
+      URL.revokeObjectURL(capturedImage.value)
+    }
+    return
+  }
+
+  // Si c'est une photo capturée avec la caméra
   if (!canvasRef.value) return
 
   canvasRef.value.toBlob((blob) => {
@@ -217,6 +310,12 @@ const handleCancel = () => {
   if (capturedImage.value) {
     URL.revokeObjectURL(capturedImage.value)
   }
+  
+  // Réinitialiser l'input file
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+  
   emit('cancel')
 }
 
@@ -228,11 +327,14 @@ const cleanup = () => {
   if (capturedImage.value) {
     URL.revokeObjectURL(capturedImage.value)
   }
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
 }
 
 // Lifecycle
 onMounted(() => {
-  startCamera()
+  // Ne pas démarrer automatiquement la caméra, laisser l'utilisateur choisir
 })
 
 onUnmounted(() => {
