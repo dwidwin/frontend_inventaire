@@ -9,7 +9,7 @@ import ItemsView from '@/views/items/ItemsView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/login',
