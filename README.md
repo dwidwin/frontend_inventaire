@@ -67,7 +67,7 @@ Application web moderne pour la gestion d'inventaire de club sportif, développ�
    ```
 
 5. **Ouvrir l'application**
-   Naviguer vers `http://localhost:3000`
+   Naviguer vers `http://localhost:5173`
 
 ## 🏗️ Structure du Projet
 
@@ -132,15 +132,31 @@ L'application est optimisée pour tous les écrans :
 - **Tablet** : Layout hybride
 - **Desktop** : Sidebar fixe, tableaux complets
 
-## 🚀 Déploiement
+## 🚀 Déploiement (sans Docker, Node/pm2)
 
-### Build de Production
+### Production (build)
 
 ```bash
 npm run build
 ```
 
-Les fichiers de production sont générés dans le dossier `dist/`.
+Le build est généré dans `dist/`.
+
+### Lancer en production avec pm2
+
+```bash
+npm run start
+# ou
+pm2 start ecosystem.config.cjs
+```
+
+### Mettre à jour sur le VPS
+
+```bash
+scripts/deploy-vps.sh
+```
+
+Ce script effectue: `git pull` → `npm ci` → `npm run build` → `pm2 reload`.
 
 ### Variables d'Environnement
 

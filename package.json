@@ -6,9 +6,15 @@
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
+    "serve": "node server/server.cjs",
+    "start": "pm2 start ecosystem.config.cjs",
+    "pm2:reload": "pm2 reload frontend-inventaire || pm2 start ecosystem.config.cjs",
+    "deploy:vps": "bash scripts/deploy-vps.sh",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "compression": "^1.7.4",
+    "express": "^4.19.2",
     "vue": "^3.4.0",
     "vue-router": "^4.2.5",
     "pinia": "^2.1.7",

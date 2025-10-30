@@ -1,163 +1,90 @@
-# Guide de Déploiement - Frontend Inventaire Club
+# Guide de Déploiement - Frontend Inventaire Club (Node/pm2)
 
-## 🚀 Déploiement sur VPS
+## 🚀 Déploiement sur VPS (sans Docker)
 
 ### Prérequis
 
-- VPS avec Docker et Docker Compose installés
 - Accès SSH au serveur
+- Node.js 18+ installé
+- pm2 installé globalement (`npm i -g pm2`)
 - Domaine configuré (optionnel)
 
-### Méthode 1: Déploiement avec Docker (Recommandé)
+### Première installation (VPS)
 
-1. **Cloner le repository sur votre VPS**
+1. Cloner le repository
    ```bash
    git clone https://github.com/votre-username/frontend-inventaire-club.git
    cd frontend-inventaire-club
    ```
 
-2. **Configurer l'environnement**
+2. Configurer l'environnement
    ```bash
-   cp env.example .env
-   # Modifier .env si nécessaire
+   cp env.example .env.production
+   # Éditer .env.production si nécessaire (VITE_API_URL, VITE_APP_NAME)
    ```
 
-3. **Déployer avec Docker Compose**
+3. Installer et builder
    ```bash
-   chmod +x deploy.sh
-   ./deploy.sh
-   ```
-
-4. **Vérifier le déploiement**
-   ```bash
-   docker-compose ps
-   docker-compose logs -f
-   ```
-
-### Méthode 2: Déploiement manuel
-
-1. **Installer les dépendances**
-   ```bash
-   npm install
-   ```
-
-2. **Construire l'application**
-   ```bash
+   npm ci
    npm run build
    ```
 
-3. **Servir avec nginx**
+4. Démarrer via pm2
    ```bash
-   # Copier les fichiers buildés vers nginx
-   sudo cp -r dist/* /var/www/html/
-   
-   # Configurer nginx
-   sudo nano /etc/nginx/sites-available/inventaire-club
+   npm run start
+   # ou directement
+   pm2 start ecosystem.config.cjs
+   pm2 save
    ```
 
-   Configuration nginx:
-   ```nginx
-   server {
-       listen 80;
-       server_name votre-domaine.com;
-       root /var/www/html;
-       index index.html;
+### Mises à jour (déploiement continu via git pull)
 
-       location / {
-           try_files $uri $uri/ /index.html;
-       }
+Sur le VPS, exécuter:
+```bash
+scripts/deploy-vps.sh
+```
 
-       location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-           expires 1y;
-           add_header Cache-Control "public, immutable";
-       }
-   }
-   ```
+Ce script fait: `git pull` → `npm ci` → `npm run build` → `pm2 reload`.
 
-### Configuration SSL (Optionnel)
+### Reverse proxy (optionnel) avec Nginx
 
-1. **Installer Certbot**
-   ```bash
-   sudo apt update
-   sudo apt install certbot python3-certbot-nginx
-   ```
+Proxy vers l'app sur `localhost:5173` (ou le port configuré dans `ecosystem.config.cjs`).
 
-2. **Obtenir un certificat SSL**
-   ```bash
-   sudo certbot --nginx -d votre-domaine.com
-   ```
+```
+server {
+    listen 80;
+    server_name votre-domaine.com;
 
-### Variables d'Environnement
+    location / {
+        proxy_pass http://127.0.0.1:5173;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### Variables d'Environnement (Vite)
 
 | Variable | Description | Valeur par défaut |
 |----------|-------------|-------------------|
 | `VITE_API_URL` | URL de l'API backend | `https://api-inventory.edwinbouchenna.fr` |
 | `VITE_APP_NAME` | Nom de l'application | `Inventaire Club` |
 
-### Commandes utiles
-
-```bash
-# Voir les logs
-docker-compose logs -f
-
-# Redémarrer l'application
-docker-compose restart
-
-# Mettre à jour l'application
-git pull
-docker-compose up --build -d
-
-# Arrêter l'application
-docker-compose down
-
-# Voir l'utilisation des ressources
-docker stats
-```
+Placer ces variables dans `.env.production` sur le VPS.
 
 ### Dépannage
 
-**Problème de connexion à l'API**
-- Vérifier que l'API est accessible depuis le VPS
-- Vérifier la configuration CORS de l'API
-- Vérifier les variables d'environnement
+- Vérifier que Node.js 18+ et pm2 sont installés
+- `pm2 logs frontend-inventaire` pour voir les logs
+- Vérifier `dist/` est présent après build
+- Si reverse proxy: `sudo tail -f /var/log/nginx/error.log`
 
-**Problème de build**
-- Vérifier que Node.js 18+ est installé
-- Vérifier les permissions des fichiers
-- Vérifier l'espace disque disponible
+### Monitoring (pm2)
 
-**Problème de nginx**
-- Vérifier la configuration nginx
-- Vérifier que le port 80 est ouvert
-- Vérifier les logs nginx: `sudo tail -f /var/log/nginx/error.log`
-
-### Monitoring
-
-**Logs d'application**
 ```bash
-docker-compose logs -f frontend
-```
-
-**Métriques système**
-```bash
-docker stats
-htop
-```
-
-**Vérification de santé**
-```bash
-curl -I http://votre-ip:80
-```
-
-### Sauvegarde
-
-**Sauvegarder la configuration**
-```bash
-tar -czf inventaire-club-backup-$(date +%Y%m%d).tar.gz .
-```
-
-**Restaurer depuis une sauvegarde**
-```bash
-tar -xzf inventaire-club-backup-YYYYMMDD.tar.gz
-docker-compose up -d
+pm2 status
+pm2 logs frontend-inventaire
+pm2 monit
 ```
