@@ -1,17 +1,40 @@
 <template>
   <div>
-    <div class="flex items-start justify-between py-2">
-      <div class="flex-1">
-        <div class="text-gray-900 font-medium">{{ node.name }}</div>
-        <div v-if="node.description" class="text-sm text-gray-600">{{ node.description }}</div>
-      </div>
-      <div class="flex items-center space-x-2">
-        <button @click="$emit('edit', node)" class="text-primary-600 hover:text-primary-900 text-sm">Modifier</button>
-        <button @click="$emit('delete', node)" class="text-danger-600 hover:text-danger-900 text-sm">Supprimer</button>
+    <!-- Card pour la catégorie actuelle -->
+    <div class="card">
+      <div class="card-body">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <h3 class="text-lg font-medium text-gray-900">{{ node.name }}</h3>
+            <p v-if="node.description" class="mt-1 text-sm text-gray-600">
+              {{ node.description }}
+            </p>
+            <div v-if="sortedChildren.length" class="mt-2">
+              <span class="text-xs text-gray-500">
+                {{ sortedChildren.length }} sous-catégorie(s)
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button
+              @click="$emit('edit', node)"
+              class="text-primary-600 hover:text-primary-900 text-sm"
+            >
+              Modifier
+            </button>
+            <button
+              @click="$emit('delete', node)"
+              class="text-danger-600 hover:text-danger-900 text-sm"
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div v-if="sortedChildren.length" class="pl-4 border-l border-gray-200">
+    <!-- Sous-catégories avec indentation -->
+    <div v-if="sortedChildren.length" class="ml-6 mt-3 space-y-3">
       <CategoryTree
         v-for="child in sortedChildren"
         :key="child.id"

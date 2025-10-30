@@ -51,19 +51,13 @@
         </div>
         
         <div v-else class="space-y-3">
-          <div class="card">
-            <div class="card-body">
-              <div class="space-y-2">
-                <CategoryTree
-                  v-for="root in categoryRoots"
-                  :key="root.id"
-                  :node="root"
-                  @edit="handleEditCategory"
-                  @delete="handleDeleteCategory"
-                />
-              </div>
-            </div>
-          </div>
+          <CategoryTree
+            v-for="root in categoryRoots"
+            :key="root.id"
+            :node="root"
+            @edit="handleEditCategory"
+            @delete="handleDeleteCategory"
+          />
         </div>
       </div>
 
