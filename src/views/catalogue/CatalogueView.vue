@@ -51,13 +51,19 @@
         </div>
         
         <div v-else class="space-y-3">
-          <CategoryCard
-            v-for="category in categories"
-            :key="category.id"
-            :category="category"
-            @edit="handleEditCategory"
-            @delete="handleDeleteCategory"
-          />
+          <div class="card">
+            <div class="card-body">
+              <div class="space-y-2">
+                <CategoryTree
+                  v-for="root in categoryRoots"
+                  :key="root.id"
+                  :node="root"
+                  @edit="handleEditCategory"
+                  @delete="handleDeleteCategory"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -135,6 +141,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints/materialModels'
 import DataTable from '@/components/DataTable.vue'
 import CategoryCard from '@/components/CategoryCard.vue'
+import CategoryTree from '@/components/CategoryTree.vue'
 import CreateCategoryModal from '@/components/modals/CreateCategoryModal.vue'
 import EditCategoryModal from '@/components/modals/EditCategoryModal.vue'
 import CreateModelModal from '@/components/modals/CreateModelModal.vue'
@@ -212,4 +219,46 @@ const handleModelUpdated = () => {
   showEditModelModal.value = false
   selectedModel.value = null
 }
+
+// Construire l'arborescence des catégories à partir d'une liste plate si nécessaire
+import { computed } from 'vue'
+
+const categoryTree = computed(() => {
+  const list = categories.value || []
+  if (!list.length) return [] as Category[]
+
+  const idToNode = new Map<string, Category>()
+  // clone superficiel pour ne pas muter les données de requête
+  list.forEach((c) => idToNode.set(c.id, { ...c, children: c.children ? [...c.children] : [] }))
+
+  // Si children déjà fournis par l'API, supposons l'arbre déjà prêt
+  const hasAnyChildren = list.some((c) => c.children && c.children.length)
+  if (hasAnyChildren) return list.filter((c) => !c.parentId)
+
+  // Sinon, reconstruire via parentId
+  const roots: Category[] = []
+  idToNode.forEach((node) => {
+    if (node.parentId) {
+      const parent = idToNode.get(node.parentId)
+      if (parent) {
+        if (!parent.children) parent.children = []
+        parent.children.push(node)
+      } else {
+        roots.push(node)
+      }
+    } else {
+      roots.push(node)
+    }
+  })
+
+  // Trier par nom (racines et enfants)
+  const sortDeep = (nodes: Category[]) => {
+    nodes.sort((a, b) => a.name.localeCompare(b.name))
+    nodes.forEach((n) => n.children && sortDeep(n.children))
+  }
+  sortDeep(roots)
+  return roots
+})
+
+const categoryRoots = categoryTree
 </script>
