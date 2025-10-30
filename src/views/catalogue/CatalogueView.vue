@@ -261,7 +261,21 @@ const categoryTree = computed(() => {
     nodes.forEach((n) => n.children && sortDeep(n.children))
   }
   sortDeep(roots)
-  return roots
+  // Supprimer les doublons par nom: si une catégorie racine a le même nom
+  // qu'une sous-catégorie ailleurs, on n'affiche que la version imbriquée.
+  const childNameSet = new Set<string>()
+  const collectChildNames = (nodes: Category[]) => {
+    nodes.forEach((n) => {
+      if (n.children && n.children.length) {
+        n.children.forEach((ch) => childNameSet.add(ch.name))
+        collectChildNames(n.children)
+      }
+    })
+  }
+  collectChildNames(roots)
+
+  const filteredRoots = roots.filter((r) => !childNameSet.has(r.name))
+  return filteredRoots
 })
 
 const categoryRoots = categoryTree
