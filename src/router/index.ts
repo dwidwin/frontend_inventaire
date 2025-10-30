@@ -11,82 +11,35 @@ import NotFoundView from '@/views/NotFoundView.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // Auth layout avec page de login
     {
       path: '/login',
-      name: 'Login',
-      component: LoginView,
-      meta: { requiresAuth: false }
+      component: () => import('@/layouts/AuthLayout.vue'),
+      meta: { requiresAuth: false },
+      children: [
+        { path: '', name: 'Login', component: LoginView }
+      ]
     },
+
+    // Main layout pour toutes les routes protégées
     {
       path: '/',
-      name: 'Dashboard',
-      component: DashboardView,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/catalogue',
-      name: 'Catalogue',
-      component: CatalogueView,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/items',
-      name: 'Items',
-      component: ItemsView,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/items/:id',
-      name: 'ItemDetail',
-      component: () => import('@/views/items/ItemDetailView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/locations',
-      name: 'Locations',
-      component: () => import('@/views/locations/LocationsView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/assignments',
-      name: 'Assignments',
-      component: () => import('@/views/assignments/AssignmentsView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/transactions',
-      name: 'Transactions',
-      component: () => import('@/views/transactions/TransactionsView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/teams',
-      name: 'Teams',
-      component: () => import('@/views/teams/TeamsView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/users',
-      name: 'Users',
-      component: () => import('@/views/users/UsersView.vue'),
-      meta: { requiresAuth: true, requiresManager: true }
-    },
-    {
-      path: '/notifications',
-      name: 'Notifications',
-      component: () => import('@/views/notifications/NotificationsView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/audit',
-      name: 'Audit',
-      component: () => import('@/views/audit/AuditView.vue'),
-      meta: { requiresAuth: true, requiresManager: true }
-    },
-    {
-      path: '/:pathMatch(.*)*',
-      name: 'NotFound',
-      component: NotFoundView
+      component: () => import('@/layouts/MainLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        { path: '', name: 'Dashboard', component: DashboardView },
+        { path: 'catalogue', name: 'Catalogue', component: CatalogueView },
+        { path: 'items', name: 'Items', component: ItemsView },
+        { path: 'items/:id', name: 'ItemDetail', component: () => import('@/views/items/ItemDetailView.vue') },
+        { path: 'locations', name: 'Locations', component: () => import('@/views/locations/LocationsView.vue') },
+        { path: 'assignments', name: 'Assignments', component: () => import('@/views/assignments/AssignmentsView.vue') },
+        { path: 'transactions', name: 'Transactions', component: () => import('@/views/transactions/TransactionsView.vue') },
+        { path: 'teams', name: 'Teams', component: () => import('@/views/teams/TeamsView.vue') },
+        { path: 'users', name: 'Users', component: () => import('@/views/users/UsersView.vue'), meta: { requiresManager: true } },
+        { path: 'notifications', name: 'Notifications', component: () => import('@/views/notifications/NotificationsView.vue') },
+        { path: 'audit', name: 'Audit', component: () => import('@/views/audit/AuditView.vue'), meta: { requiresManager: true } },
+        { path: ':pathMatch(.*)*', name: 'NotFound', component: NotFoundView }
+      ]
     }
   ]
 })

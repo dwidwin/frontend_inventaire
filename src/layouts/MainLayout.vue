@@ -39,7 +39,7 @@
       <!-- Header -->
       <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="h-16">
-          <div class="max-w-6xl mx-auto flex items-center justify-between h-full px-3 sm:px-6 lg:px-8">
+          <div class="max-w-7xl mx-auto flex items-center justify-between h-full px-3 sm:px-6 lg:px-8">
           <div class="flex items-center">
             <button
               @click="sidebarOpen = true"
@@ -99,7 +99,7 @@
       <!-- Contenu -->
       <main class="flex-1 overflow-y-auto">
         <div class="py-6">
-          <div class="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <RouterView />
           </div>
         </div>
