@@ -231,17 +231,27 @@ const categoryTree = computed(() => {
 
   // Sinon, reconstruire via parentId
   const roots: Category[] = []
+  const processed = new Set<string>() // Pour éviter les doublons
+  
   idToNode.forEach((node) => {
+    if (processed.has(node.id)) return // Éviter les doublons
+    
     if (node.parentId) {
       const parent = idToNode.get(node.parentId)
       if (parent) {
         if (!parent.children) parent.children = []
         parent.children.push(node)
+        processed.add(node.id)
       } else {
-        roots.push(node)
+        // Parent introuvable, traiter comme racine seulement si pas déjà traité
+        if (!processed.has(node.id)) {
+          roots.push(node)
+          processed.add(node.id)
+        }
       }
     } else {
       roots.push(node)
+      processed.add(node.id)
     }
   })
 

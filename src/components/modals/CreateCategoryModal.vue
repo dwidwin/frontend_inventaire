@@ -180,6 +180,15 @@ watch(() => props.category, () => {
   initializeForm()
 }, { immediate: true })
 
+// Réinitialiser le formulaire quand les catégories sont chargées (pour s'assurer que parentId est correctement sélectionné)
+watch(() => categories.value, () => {
+  if (categories.value && props.category) {
+    // Réinitialiser seulement le parentId pour s'assurer qu'il est correctement sélectionné
+    form.parentId = props.category.parentId || ''
+    console.log('Catégorie parente sélectionnée:', form.parentId, 'pour la catégorie:', props.category.name)
+  }
+}, { immediate: true })
+
 // Erreurs de validation
 const errors = reactive({
   name: ''
