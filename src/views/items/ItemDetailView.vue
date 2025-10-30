@@ -85,18 +85,34 @@
             <h3 class="text-lg font-medium text-gray-900">Historique</h3>
           </div>
           <div class="card-body">
-            <div v-if="isLoadingHistory" class="space-y-3">
+            <div v-if="isLoadingStatusHistory" class="space-y-3">
               <div v-for="i in 3" :key="i" class="skeleton h-12"></div>
             </div>
-            <div v-else-if="!history?.length" class="text-center py-8 text-gray-500">
+            <div v-else-if="!statusHistory?.length" class="text-center py-8 text-gray-500">
               Aucun historique trouvé
             </div>
             <div v-else class="space-y-3">
-              <ActivityItem
-                v-for="entry in history"
-                :key="entry.id"
-                :activity="entry"
-              />
+              <div
+                v-for="s in statusHistory"
+                :key="s.id"
+                class="flex items-start"
+              >
+                <div class="flex-shrink-0">
+                  <div class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                    <span class="h-4 w-4 inline-block rounded-full" :style="{ backgroundColor: '#9CA3AF' }"></span>
+                  </div>
+                </div>
+                <div class="ml-3 flex-1">
+                  <p class="text-sm text-gray-900">
+                    <span class="font-medium">{{ s.setBy?.username || 'Système' }}</span>
+                    a défini le statut sur
+                    <span class="font-medium">{{ s.statusKey }}</span>
+                  </p>
+                  <p class="text-xs text-gray-500">
+                    {{ formatDateTime(s.startAt) }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -176,20 +192,25 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useItem, useItemHistory } from '@/composables/useItems'
+import { useItem } from '@/composables/useItems'
 import { useQuery } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
 import { statusesApi } from '@/api/endpoints/statuses'
 import { formatDate, formatDateTime } from '@/utils/formatDate'
 import StatusBadge from '@/components/StatusBadge.vue'
-import ActivityItem from '@/components/ActivityItem.vue'
 
 const route = useRoute()
 const itemId = route.params.id as string
 
 // Queries
 const { data: item, isLoading: isLoadingItem } = useItem(itemId)
-const { data: history, isLoading: isLoadingHistory } = useItemHistory(itemId)
+
+// Historique des statuts de l'item
+const { data: statusHistory, isLoading: isLoadingStatusHistory } = useQuery({
+  queryKey: ['item-statuses', 'history', itemId],
+  queryFn: () => statusesApi.getItemStatusHistory(itemId),
+  enabled: !!itemId,
+})
 
 // Affectation actuelle
 const { data: assignments } = useQuery({
