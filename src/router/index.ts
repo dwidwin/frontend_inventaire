@@ -39,9 +39,11 @@ const router = createRouter({
         { path: 'settings', name: 'Settings', component: () => import('@/views/settings/SettingsView.vue'), meta: { requiresAdmin: true } },
         { path: 'notifications', name: 'Notifications', component: () => import('@/views/notifications/NotificationsView.vue') },
         { path: 'audit', name: 'Audit', component: () => import('@/views/audit/AuditView.vue'), meta: { requiresManager: true } },
-        { path: 'buvette/products', name: 'BuvetteProducts', component: () => import('@/views/buvette/ProductsView.vue') },
-        { path: 'buvette/stock', name: 'BuvetteStock', component: () => import('@/views/buvette/StockView.vue') },
-        { path: 'buvette/sales', name: 'BuvetteSales', component: () => import('@/views/buvette/SalesView.vue') },
+        { path: 'buvette', name: 'Buvette', component: () => import('@/views/buvette/BuvetteView.vue'), meta: { requiresManager: true } },
+        // Redirections des anciennes routes buvette vers la nouvelle page avec onglets
+        { path: 'buvette/products', redirect: { name: 'Buvette', query: { tab: 'products' } } },
+        { path: 'buvette/stock', redirect: { name: 'Buvette', query: { tab: 'stock' } } },
+        { path: 'buvette/sales', redirect: { name: 'Buvette', query: { tab: 'sales' } } },
         { path: ':pathMatch(.*)*', name: 'NotFound', component: NotFoundView }
       ]
     }

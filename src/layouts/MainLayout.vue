@@ -138,9 +138,7 @@ const navigationItems = computed(() => {
       { name: 'Équipes', href: '/teams', icon: 'UsersIcon' },
       { name: 'Emplacements', href: '/locations', icon: 'MapPinIcon' },
       { name: 'Affectations', href: '/assignments', icon: 'UserGroupIcon' },
-      { name: 'Buvette - Produits', href: '/buvette/products', icon: 'CubeIcon' },
-      { name: 'Buvette - Stock', href: '/buvette/stock', icon: 'CubeIcon' },
-      { name: 'Buvette - Ventes', href: '/buvette/sales', icon: 'CurrencyDollarIcon' }
+      { name: 'Buvette', href: '/buvette', icon: 'CubeIcon' }
     )
   }
 
