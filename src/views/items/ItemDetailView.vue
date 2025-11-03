@@ -9,7 +9,7 @@
             {{ item?.model?.category?.name }} • {{ item?.codeBarre || 'Sans code-barres' }}
           </p>
         </div>
-        <div class="flex items-center space-x-3">
+        <div v-if="authStore.canWrite" class="flex items-center space-x-3">
           <button
             @click="showEditModal = true"
             class="btn btn-primary"
@@ -159,7 +159,7 @@
         </div>
 
         <!-- Actions rapides -->
-        <div class="card">
+        <div v-if="authStore.canWrite" class="card">
           <div class="card-header">
             <h3 class="text-lg font-medium text-gray-900">Actions rapides</h3>
           </div>
@@ -192,12 +192,15 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { useItem } from '@/composables/useItems'
 import { useQuery } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
 import { statusesApi } from '@/api/endpoints/statuses'
 import { formatDate, formatDateTime } from '@/utils/formatDate'
 import StatusBadge from '@/components/StatusBadge.vue'
+
+const authStore = useAuthStore()
 
 const route = useRoute()
 const itemId = route.params.id as string

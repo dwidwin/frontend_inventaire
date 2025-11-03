@@ -23,8 +23,55 @@ export const useAuthStore = defineStore('auth', () => {
     const role = normalizeRole(user.value?.role)
     return role === 'MANAGER' || role === 'ADMIN'
   })
+  const isUser = computed(() => {
+    const role = normalizeRole(user.value?.role)
+    return role === 'USER'
+  })
   const canManageUsers = computed(() => isManager.value)
   const canManageInventory = computed(() => isManager.value)
+  
+  // Permissions
+  // Peut lire : tous les utilisateurs authentifiés peuvent lire ce à quoi ils ont accès
+  const canRead = computed(() => isAuthenticated.value)
+  
+  // Peut écrire/modifier : admin et manager peuvent écrire, user ne peut que lire
+  const canWrite = computed(() => isAdmin.value || isManager.value)
+  
+  // Vérifier l'accès à une page selon le rôle
+  const canAccessPage = (path: string): boolean => {
+    if (!isAuthenticated.value) return false
+    
+    // Admin : accès à tout
+    if (isAdmin.value) return true
+    
+    // Manager : accès à tout sauf Settings
+    if (isManager.value) {
+      return path !== '/settings'
+    }
+    
+    // User : accès uniquement à Catalogue et Notifications
+    // Permettre aussi l'accès aux détails d'item (/items/:id) pour la lecture seule
+    // Exclure Dashboard (/), Items list (/items), et toutes les autres pages
+    if (isUser.value) {
+      // Routes autorisées pour les users
+      if (path === '/catalogue' || path === '/notifications') {
+        return true
+      }
+      // Routes qui commencent par /catalogue/ ou /notifications/ (sous-routes)
+      if (path.startsWith('/catalogue/') || path.startsWith('/notifications/')) {
+        return true
+      }
+      // Permettre l'accès aux détails d'item pour la lecture seule
+      // Format: /items/:id où :id est un UUID ou un nombre
+      if (/^\/items\/[^/]+$/.test(path)) {
+        return true
+      }
+      // Toutes les autres routes sont interdites
+      return false
+    }
+    
+    return false
+  }
 
   // Actions
   const login = async (credentials: LoginDto): Promise<void> => {
@@ -125,8 +172,14 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     isManager,
+    isUser,
     canManageUsers,
     canManageInventory,
+    
+    // Permissions
+    canRead,
+    canWrite,
+    canAccessPage,
     
     // Actions
     login,

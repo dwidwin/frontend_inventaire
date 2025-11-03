@@ -9,7 +9,7 @@
     </div>
 
     <!-- Actions -->
-    <div class="mb-6 flex justify-between items-center">
+    <div v-if="authStore.canWrite" class="mb-6 flex justify-between items-center">
       <div class="flex items-center space-x-3">
         <button
           @click="showBroadcastModal = true"
@@ -44,8 +44,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { PlusIcon } from '@heroicons/vue/24/outline'
+import { useAuthStore } from '@/stores/auth'
 import { useNotifications, useMarkNotificationAsRead } from '@/composables/useNotifications'
 import NotificationItem from '@/components/NotificationItem.vue'
+
+const authStore = useAuthStore()
 
 // Queries
 const { data: notifications, isLoading } = useNotifications()

@@ -9,7 +9,7 @@
     </div>
 
     <!-- Actions -->
-    <div class="mb-6 flex justify-between items-center">
+    <div v-if="authStore.canWrite" class="mb-6 flex justify-between items-center">
       <div class="flex items-center space-x-3">
         <button
           @click="showCreateModal = true"
@@ -35,6 +35,8 @@
         v-for="team in teams"
         :key="team.id"
         :team="team"
+        :can-edit="authStore.canWrite"
+        :can-delete="authStore.canWrite"
         @edit="handleEdit"
         @delete="handleDelete"
       />
@@ -45,10 +47,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { PlusIcon } from '@heroicons/vue/24/outline'
+import { useAuthStore } from '@/stores/auth'
 import { useQuery } from '@tanstack/vue-query'
 import { teamsApi } from '@/api/endpoints/teams'
 import TeamCard from '@/components/TeamCard.vue'
 import type { Team } from '@/types'
+
+const authStore = useAuthStore()
 
 // Queries
 const { data: teams, isLoading } = useQuery({

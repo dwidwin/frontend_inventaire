@@ -60,6 +60,21 @@ router.beforeEach(async (to, from, next) => {
     return
   }
   
+  // Si authentifié, vérifier les permissions d'accès à la page
+  if (authStore.isAuthenticated) {
+    // Vérifier l'accès selon le rôle utilisateur
+    if (!authStore.canAccessPage(to.path)) {
+      // Si user essaie d'accéder à une page non autorisée, rediriger vers catalogue
+      if (authStore.isUser) {
+        next('/catalogue')
+        return
+      }
+      // Sinon, rediriger vers dashboard
+      next('/')
+      return
+    }
+  }
+  
   // Vérifier les permissions manager
   if (to.meta.requiresManager && !authStore.isManager) {
     next('/')

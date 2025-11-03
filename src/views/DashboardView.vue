@@ -41,7 +41,7 @@
     </div>
 
     <!-- Actions rapides -->
-    <div class="mb-8">
+    <div v-if="authStore.canWrite" class="mb-8">
       <h2 class="text-lg font-medium text-gray-900 mb-4">Actions rapides</h2>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <QuickActionCard
@@ -143,6 +143,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { useItems } from '@/composables/useItems'
 import { useNotifications, useUnreadNotificationsCount, useMarkNotificationAsRead } from '@/composables/useNotifications'
 import { useQuery } from '@tanstack/vue-query'
@@ -153,6 +154,8 @@ import StatCard from '@/components/StatCard.vue'
 import QuickActionCard from '@/components/QuickActionCard.vue'
 import NotificationItem from '@/components/NotificationItem.vue'
 import ActivityItem from '@/components/ActivityItem.vue'
+
+const authStore = useAuthStore()
 
 // Queries
 const { data: items, isLoading: isLoadingItems } = useItems()

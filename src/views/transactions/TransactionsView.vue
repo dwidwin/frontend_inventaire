@@ -9,7 +9,7 @@
     </div>
 
     <!-- Actions -->
-    <div class="mb-6 flex justify-between items-center">
+    <div v-if="authStore.canWrite" class="mb-6 flex justify-between items-center">
       <div class="flex items-center space-x-3">
         <button
           @click="showCreateRentalModal = true"
@@ -34,6 +34,8 @@
       :columns="columns"
       :is-loading="isLoading"
       title="Liste des transactions"
+      :show-edit="authStore.canWrite"
+      :show-delete="authStore.canWrite"
       @edit="handleEdit"
       @delete="handleDelete"
     >
@@ -70,11 +72,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { PlusIcon, CurrencyDollarIcon } from '@heroicons/vue/24/outline'
+import { useAuthStore } from '@/stores/auth'
 import { useQuery } from '@tanstack/vue-query'
 import { transactionsApi } from '@/api/endpoints/transactions'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import type { Transaction } from '@/types'
+
+const authStore = useAuthStore()
 
 // Queries
 const { data: transactions, isLoading } = useQuery({

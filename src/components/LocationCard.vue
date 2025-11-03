@@ -13,14 +13,16 @@
             </span>
           </div>
         </div>
-        <div class="flex items-center space-x-2">
+        <div v-if="canEdit || canDelete" class="flex items-center space-x-2">
           <button
+            v-if="canEdit"
             @click="$emit('edit', location)"
             class="text-primary-600 hover:text-primary-900 text-sm"
           >
             Modifier
           </button>
           <button
+            v-if="canDelete"
             @click="$emit('delete', location)"
             class="text-danger-600 hover:text-danger-900 text-sm"
           >
@@ -37,9 +39,14 @@ import type { Location } from '@/types'
 
 interface Props {
   location: Location
+  canEdit?: boolean
+  canDelete?: boolean
 }
 
-defineProps<Props>()
+withDefaults(defineProps<Props>(), {
+  canEdit: true,
+  canDelete: true,
+})
 
 defineEmits<{
   edit: [location: Location]

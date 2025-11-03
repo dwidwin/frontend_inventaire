@@ -9,7 +9,7 @@
     </div>
 
     <!-- Actions -->
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+    <div v-if="authStore.canWrite" class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
       <div class="flex items-center space-x-3">
         <button
           @click="showCreateModal = true"
@@ -34,6 +34,8 @@
       :columns="columns"
       :is-loading="isLoading"
       title="Liste des items"
+      :show-edit="authStore.canWrite"
+      :show-delete="authStore.canWrite"
       @edit="handleEdit"
       @delete="handleDelete"
     >
@@ -126,6 +128,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { PlusIcon, QrCodeIcon } from '@heroicons/vue/24/outline'
+import { useAuthStore } from '@/stores/auth'
 import { useItems } from '@/composables/useItems'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -134,6 +137,8 @@ import EditItemModal from '@/components/modals/EditItemModal.vue'
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
 import ScanModal from '@/components/modals/ScanModal.vue'
 import type { Item } from '@/types'
+
+const authStore = useAuthStore()
 
 // Queries
 const { data: items, isLoading } = useItems()
