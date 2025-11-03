@@ -111,7 +111,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Bars3Icon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 import NavigationItem from '@/components/NavigationItem.vue'
 import NotificationBell from '@/components/NotificationBell.vue'
@@ -124,29 +124,36 @@ const authStore = useAuthStore()
 const sidebarOpen = ref(false)
 const userMenuOpen = ref(false)
 
-// Navigation items
-const navigationItems = [
-  { name: 'Dashboard', href: '/', icon: 'HomeIcon' },
-  { name: 'Catalogue', href: '/catalogue', icon: 'Squares2X2Icon' },
-  { name: 'Items', href: '/items', icon: 'CubeIcon' },
-  { name: 'Emplacements', href: '/locations', icon: 'MapPinIcon' },
-  { name: 'Affectations', href: '/assignments', icon: 'UserGroupIcon' },
-  { name: 'Transactions', href: '/transactions', icon: 'CurrencyDollarIcon' },
-  { name: 'Équipes', href: '/teams', icon: 'UsersIcon' },
-  { name: 'Notifications', href: '/notifications', icon: 'BellIcon' },
-]
+// Navigation items de base (accessibles à tous)
+const navigationItems = computed(() => {
+  const items = [
+    { name: 'Dashboard', href: '/', icon: 'HomeIcon' },
+    { name: 'Catalogue', href: '/catalogue', icon: 'Squares2X2Icon' },
+    { name: 'Notifications', href: '/notifications', icon: 'BellIcon' },
+  ]
 
-// Ajouter les items admin/manager
-if (authStore.isManager) {
-  navigationItems.push(
-    { name: 'Utilisateurs', href: '/users', icon: 'UserIcon' },
-    { name: 'Audit', href: '/audit', icon: 'DocumentTextIcon' }
-  )
-}
+  // Items accessibles aux managers
+  if (authStore.isManager) {
+    items.push(
+      { name: 'Équipes', href: '/teams', icon: 'UsersIcon' },
+      { name: 'Emplacements', href: '/locations', icon: 'MapPinIcon' },
+      { name: 'Affectations', href: '/assignments', icon: 'UserGroupIcon' }
+    )
+  }
+
+  // Items accessibles aux admins
+  if (authStore.isAdmin) {
+    items.push(
+      { name: 'Paramètres', href: '/settings', icon: 'Cog6ToothIcon' }
+    )
+  }
+
+  return items
+})
 
 // Titre de la page actuelle
 const currentPageTitle = computed(() => {
-  const item = navigationItems.find(item => item.href === route.path)
+  const item = navigationItems.value.find(item => item.href === route.path)
   return item?.name || 'Inventaire Club'
 })
 

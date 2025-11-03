@@ -31,11 +31,12 @@ const router = createRouter({
         { path: 'catalogue', name: 'Catalogue', component: CatalogueView },
         { path: 'items', name: 'Items', component: ItemsView },
         { path: 'items/:id', name: 'ItemDetail', component: () => import('@/views/items/ItemDetailView.vue') },
-        { path: 'locations', name: 'Locations', component: () => import('@/views/locations/LocationsView.vue') },
-        { path: 'assignments', name: 'Assignments', component: () => import('@/views/assignments/AssignmentsView.vue') },
+        { path: 'locations', name: 'Locations', component: () => import('@/views/locations/LocationsView.vue'), meta: { requiresManager: true } },
+        { path: 'assignments', name: 'Assignments', component: () => import('@/views/assignments/AssignmentsView.vue'), meta: { requiresManager: true } },
         { path: 'transactions', name: 'Transactions', component: () => import('@/views/transactions/TransactionsView.vue') },
-        { path: 'teams', name: 'Teams', component: () => import('@/views/teams/TeamsView.vue') },
+        { path: 'teams', name: 'Teams', component: () => import('@/views/teams/TeamsView.vue'), meta: { requiresManager: true } },
         { path: 'users', name: 'Users', component: () => import('@/views/users/UsersView.vue'), meta: { requiresManager: true } },
+        { path: 'settings', name: 'Settings', component: () => import('@/views/settings/SettingsView.vue'), meta: { requiresAdmin: true } },
         { path: 'notifications', name: 'Notifications', component: () => import('@/views/notifications/NotificationsView.vue') },
         { path: 'audit', name: 'Audit', component: () => import('@/views/audit/AuditView.vue'), meta: { requiresManager: true } },
         { path: ':pathMatch(.*)*', name: 'NotFound', component: NotFoundView }
@@ -61,6 +62,12 @@ router.beforeEach(async (to, from, next) => {
   
   // Vérifier les permissions manager
   if (to.meta.requiresManager && !authStore.isManager) {
+    next('/')
+    return
+  }
+  
+  // Vérifier les permissions admin
+  if (to.meta.requiresAdmin && !authStore.isAdmin) {
     next('/')
     return
   }

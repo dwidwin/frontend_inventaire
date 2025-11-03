@@ -4,273 +4,221 @@
     <div class="mb-8">
       <h1 class="text-2xl font-bold text-gray-900">Catalogue</h1>
       <p class="mt-1 text-sm text-gray-600">
-        Gestion des catégories et modèles de matériel
+        Liste complète du matériel disponible
       </p>
     </div>
 
-    <!-- Tabs -->
-    <div class="mb-6">
-      <nav class="flex space-x-8" aria-label="Tabs">
+    <!-- Barre de recherche et filtres -->
+    <div class="mb-6 space-y-4">
+      <!-- Barre de recherche -->
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Rechercher un matériel..."
+          class="form-input pl-10 w-full"
+        />
+      </div>
+
+      <!-- Filtres -->
+      <div class="flex flex-wrap gap-3">
+        <!-- Filtre par catégorie -->
+        <select
+          v-model="selectedCategoryId"
+          class="form-select"
+        >
+          <option value="">Toutes les catégories</option>
+          <option
+            v-for="category in categories"
+            :key="category.id"
+            :value="category.id"
+          >
+            {{ category.name }}
+          </option>
+        </select>
+
+        <!-- Filtre par emplacement -->
+        <select
+          v-model="selectedLocationId"
+          class="form-select"
+        >
+          <option value="">Tous les emplacements</option>
+          <option
+            v-for="location in locations"
+            :key="location.id"
+            :value="location.id"
+          >
+            {{ location.name }}
+          </option>
+        </select>
+
+        <!-- Filtre par état -->
+        <select
+          v-model="selectedStatus"
+          class="form-select"
+        >
+          <option value="">Tous les états</option>
+          <option
+            v-for="status in statuses"
+            :key="status.id"
+            :value="status.key"
+          >
+            {{ status.name }}
+          </option>
+        </select>
+
+        <!-- Bouton réinitialiser -->
         <button
-          v-for="tab in tabs"
-          :key="tab.name"
-          @click="activeTab = tab.name"
-          :class="[
-            'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
-            activeTab === tab.name
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          ]"
+          @click="resetFilters"
+          class="btn btn-secondary btn-sm"
         >
-          {{ tab.label }}
+          Réinitialiser
         </button>
-      </nav>
+      </div>
     </div>
 
-    <!-- Contenu des tabs -->
-    <div class="mt-6">
-      <!-- Catégories -->
-      <div v-if="activeTab === 'categories'">
-        <div class="mb-6 flex justify-between items-center">
-          <h2 class="text-lg font-medium text-gray-900">Catégories</h2>
-          <button
-            @click="showCreateCategoryModal = true"
-            class="btn btn-primary"
-          >
-            <PlusIcon class="h-5 w-5 mr-2" />
-            Ajouter une catégorie
-          </button>
+    <!-- Compteur de résultats -->
+    <div class="mb-4 text-sm text-gray-600">
+      {{ filteredItems.length }} résultat(s) trouvé(s)
+    </div>
+
+    <!-- Grille de cartes -->
+    <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div v-for="i in 8" :key="i" class="card">
+        <div class="skeleton h-48"></div>
+        <div class="card-body">
+          <div class="skeleton h-6 mb-2"></div>
+          <div class="skeleton h-4 w-2/3"></div>
         </div>
-        
-        <div v-if="isLoadingCategories" class="space-y-3">
-          <div v-for="i in 5" :key="i" class="skeleton h-16"></div>
-        </div>
-        
-        <div v-else-if="!categories?.length" class="text-center py-8 text-gray-500">
-          Aucune catégorie trouvée
-        </div>
-        
-        <div v-else class="space-y-3">
-          <CategoryTree
-            v-for="root in categoryRoots"
-            :key="root.id"
-            :node="root"
-            @edit="handleEditCategory"
-            @delete="handleDeleteCategory"
+      </div>
+    </div>
+
+    <div v-else-if="!filteredItems.length" class="text-center py-12">
+      <p class="text-gray-500">Aucun matériel trouvé</p>
+    </div>
+
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <RouterLink
+        v-for="item in filteredItems"
+        :key="item.id"
+        :to="`/items/${item.id}`"
+        class="card hover:shadow-lg transition-shadow cursor-pointer"
+      >
+        <!-- Image -->
+        <div class="relative h-48 bg-gray-100 rounded-t-lg overflow-hidden">
+          <img
+            v-if="item.model?.mainImageUrl || item.photoUrl"
+            :src="item.photoUrl || item.model?.mainImageUrl"
+            :alt="item.model?.name || 'Matériel'"
+            class="w-full h-full object-cover"
           />
+          <div v-else class="w-full h-full flex items-center justify-center">
+            <CubeIcon class="h-16 w-16 text-gray-400" />
+          </div>
+          <!-- Badge état -->
+          <div class="absolute top-2 right-2">
+            <StatusBadge :status="item.etat || 'Non défini'" />
+          </div>
         </div>
-      </div>
 
-      <!-- Modèles -->
-      <div v-if="activeTab === 'models'">
-        <div class="mb-6 flex justify-between items-center">
-          <h2 class="text-lg font-medium text-gray-900">Modèles</h2>
-          <button
-            @click="showCreateModelModal = true"
-            class="btn btn-primary"
-          >
-            <PlusIcon class="h-5 w-5 mr-2" />
-            Ajouter un modèle
-          </button>
+        <!-- Contenu de la carte -->
+        <div class="card-body">
+          <h3 class="font-semibold text-gray-900 mb-1">
+            {{ item.model?.name || 'Sans nom' }}
+          </h3>
+          <p class="text-sm text-gray-600 mb-2">
+            {{ item.model?.category?.name || 'Sans catégorie' }}
+          </p>
+          <div class="flex items-center justify-between text-xs text-gray-500">
+            <span v-if="item.location">
+              📍 {{ item.location.name }}
+            </span>
+            <span v-else class="text-gray-400">Non localisé</span>
+            <span v-if="item.codeBarre" class="font-mono">
+              {{ item.codeBarre }}
+            </span>
+          </div>
         </div>
-        
-        <DataTable
-          :data="models || []"
-          :columns="modelColumns"
-          :is-loading="isLoadingModels"
-          @edit="handleEditModel"
-          @delete="handleDeleteModel"
-        >
-          <template #cell-category="{ item }">
-            <span class="text-sm text-gray-900">{{ item.category?.name }}</span>
-          </template>
-          
-          <template #cell-mainImageUrl="{ item }">
-            <img
-              v-if="item.mainImageUrl"
-              :src="item.mainImageUrl"
-              :alt="item.name"
-              class="h-10 w-10 rounded-lg object-cover"
-            />
-            <span v-else class="text-sm text-gray-500">Aucune image</span>
-          </template>
-        </DataTable>
-      </div>
+      </RouterLink>
     </div>
-
-    <!-- Modals -->
-    <CreateCategoryModal
-      v-if="showCreateCategoryModal"
-      @close="showCreateCategoryModal = false"
-      @created="handleCategoryCreated"
-    />
-    
-    <EditCategoryModal
-      v-if="showEditCategoryModal && selectedCategory"
-      :category="selectedCategory"
-      @close="showEditCategoryModal = false"
-      @updated="handleCategoryUpdated"
-    />
-    
-    <CreateModelModal
-      v-if="showCreateModelModal"
-      @close="showCreateModelModal = false"
-      @created="handleModelCreated"
-    />
-    
-    <EditModelModal
-      v-if="showEditModelModal && selectedModel"
-      :model="selectedModel"
-      @close="showEditModelModal = false"
-      @updated="handleModelUpdated"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { PlusIcon } from '@heroicons/vue/24/outline'
+import { ref, computed } from 'vue'
+import { RouterLink } from 'vue-router'
+import { MagnifyingGlassIcon, CubeIcon } from '@heroicons/vue/24/outline'
+import { useItems } from '@/composables/useItems'
 import { useCategories } from '@/composables/useCategories'
-import { useQuery } from '@tanstack/vue-query'
-import { materialModelsApi } from '@/api/endpoints/materialModels'
-import DataTable from '@/components/DataTable.vue'
-import CategoryCard from '@/components/CategoryCard.vue'
-import CategoryTree from '@/components/CategoryTree.vue'
-import CreateCategoryModal from '@/components/modals/CreateCategoryModal.vue'
-import EditCategoryModal from '@/components/modals/EditCategoryModal.vue'
-import CreateModelModal from '@/components/modals/CreateModelModal.vue'
-import EditModelModal from '@/components/modals/EditModelModal.vue'
-import type { Category, MaterialModel } from '@/types'
-
-// Tabs
-const tabs = [
-  { name: 'categories', label: 'Catégories' },
-  { name: 'models', label: 'Modèles' },
-]
-
-const activeTab = ref('categories')
+import { useLocations } from '@/composables/useLocations'
+import { useStatuses } from '@/composables/useStatuses'
+import StatusBadge from '@/components/StatusBadge.vue'
+import type { Item } from '@/types'
 
 // Queries
-const { data: categories, isLoading: isLoadingCategories } = useCategories()
-const { data: models, isLoading: isLoadingModels } = useQuery({
-  queryKey: ['material-models'],
-  queryFn: () => materialModelsApi.list(),
-})
+const { data: items, isLoading } = useItems()
+const { data: categories } = useCategories()
+const { data: locations } = useLocations()
+const { data: statuses } = useStatuses()
 
-// État local
-const showCreateCategoryModal = ref(false)
-const showEditCategoryModal = ref(false)
-const showCreateModelModal = ref(false)
-const showEditModelModal = ref(false)
-const selectedCategory = ref<Category | null>(null)
-const selectedModel = ref<MaterialModel | null>(null)
+// État local pour les filtres
+const searchQuery = ref('')
+const selectedCategoryId = ref('')
+const selectedLocationId = ref('')
+const selectedStatus = ref('')
 
-// Colonnes pour les modèles
-const modelColumns = [
-  { key: 'name', label: 'Nom', sortable: true },
-  { key: 'category', label: 'Catégorie', sortable: true },
-  { key: 'referenceFournisseur', label: 'Référence', sortable: true },
-  { key: 'mainImageUrl', label: 'Image', sortable: false },
-  { key: 'createdAt', label: 'Créé le', sortable: true },
-]
-
-// Actions pour les catégories
-const handleEditCategory = (category: Category) => {
-  selectedCategory.value = category
-  showEditCategoryModal.value = true
+// Fonction pour réinitialiser les filtres
+const resetFilters = () => {
+  searchQuery.value = ''
+  selectedCategoryId.value = ''
+  selectedLocationId.value = ''
+  selectedStatus.value = ''
 }
 
-const handleDeleteCategory = (category: Category) => {
-  // TODO: Implémenter la suppression
-  console.log('Delete category:', category)
-}
+// Items filtrés
+const filteredItems = computed(() => {
+  let result = (items.value || []).filter(Boolean)
 
-const handleCategoryCreated = () => {
-  showCreateCategoryModal.value = false
-}
-
-const handleCategoryUpdated = () => {
-  showEditCategoryModal.value = false
-  selectedCategory.value = null
-}
-
-// Actions pour les modèles
-const handleEditModel = (model: MaterialModel) => {
-  selectedModel.value = model
-  showEditModelModal.value = true
-}
-
-const handleDeleteModel = (model: MaterialModel) => {
-  // TODO: Implémenter la suppression
-  console.log('Delete model:', model)
-}
-
-const handleModelCreated = () => {
-  showCreateModelModal.value = false
-}
-
-const handleModelUpdated = () => {
-  showEditModelModal.value = false
-  selectedModel.value = null
-}
-
-// Construire l'arborescence des catégories à partir d'une liste plate si nécessaire
-import { computed } from 'vue'
-
-const categoryTree = computed(() => {
-  const list = categories.value || []
-  if (!list.length) return [] as Category[]
-
-  // Si l'API fournit déjà l'arborescence avec children populés,
-  // on ne prend que les catégories racines (sans parent)
-  const hasAnyChildren = list.some((c) => c.children && c.children.length)
-  if (hasAnyChildren) {
-    const roots = list.filter((c) => !c.parentId && !c.parent)
-    
-    // Trier par nom (racines et enfants)
-    const sortDeep = (nodes: Category[]) => {
-      nodes.sort((a, b) => a.name.localeCompare(b.name))
-      nodes.forEach((n) => n.children && sortDeep(n.children))
-    }
-    sortDeep(roots)
-    return roots
+  // Recherche textuelle
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(item => {
+      const modelName = item.model?.name?.toLowerCase() || ''
+      const categoryName = item.model?.category?.name?.toLowerCase() || ''
+      const codeBarre = item.codeBarre?.toLowerCase() || ''
+      const locationName = item.location?.name?.toLowerCase() || ''
+      
+      return modelName.includes(query) ||
+             categoryName.includes(query) ||
+             codeBarre.includes(query) ||
+             locationName.includes(query)
+    })
   }
 
-  // Sinon, reconstruire via parentId (logique de fallback)
-  const idToNode = new Map<string, Category>()
-  list.forEach((c) => idToNode.set(c.id, { ...c, children: c.children ? [...c.children] : [] }))
-
-  const roots: Category[] = []
-  const processed = new Set<string>()
-  
-  idToNode.forEach((node) => {
-    if (processed.has(node.id)) return
-    
-    if (node.parentId) {
-      const parent = idToNode.get(node.parentId)
-      if (parent) {
-        if (!parent.children) parent.children = []
-        parent.children.push(node)
-        processed.add(node.id)
-      } else {
-        if (!processed.has(node.id)) {
-          roots.push(node)
-          processed.add(node.id)
-        }
-      }
-    } else {
-      roots.push(node)
-      processed.add(node.id)
-    }
-  })
-
-  const sortDeep = (nodes: Category[]) => {
-    nodes.sort((a, b) => a.name.localeCompare(b.name))
-    nodes.forEach((n) => n.children && sortDeep(n.children))
+  // Filtre par catégorie
+  if (selectedCategoryId.value) {
+    result = result.filter(item => 
+      item.model?.category?.id === selectedCategoryId.value
+    )
   }
-  sortDeep(roots)
-  return roots
-})
 
-const categoryRoots = categoryTree
+  // Filtre par emplacement
+  if (selectedLocationId.value) {
+    result = result.filter(item => 
+      item.location?.id === selectedLocationId.value
+    )
+  }
+
+  // Filtre par état
+  if (selectedStatus.value) {
+    result = result.filter(item => 
+      item.etat === selectedStatus.value
+    )
+  }
+
+  return result
+})
 </script>
