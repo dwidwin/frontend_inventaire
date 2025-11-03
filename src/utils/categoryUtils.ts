@@ -1,6 +1,15 @@
 import type { Category } from '@/types'
 
 /**
+ * Interface pour une catégorie avec son niveau d'indentation
+ */
+export interface CategoryWithIndent {
+  category: Category
+  indentLevel: number
+  displayText: string
+}
+
+/**
  * Construit le chemin hiérarchique complet d'une catégorie
  * en remontant jusqu'à la racine
  * 
@@ -44,5 +53,100 @@ export function getCategoryHierarchyPath(
 
   // Retourner la chaîne formatée avec le séparateur " → "
   return hierarchy.map(c => c.name).join(' → ')
+}
+
+/**
+ * Construit une liste de catégories ordonnée hiérarchiquement avec indentation
+ * pour l'affichage dans les listes déroulantes
+ * 
+ * @param allCategories - La liste complète des catégories
+ * @returns Liste de catégories avec indentation, ordonnées hiérarchiquement
+ */
+export function getCategoriesWithIndent(
+  allCategories: Category[] | undefined
+): CategoryWithIndent[] {
+  if (!allCategories || !allCategories.length) {
+    return []
+  }
+
+  // Vérifier si l'API a déjà fourni l'arborescence avec children populés
+  const hasAnyChildren = allCategories.some((c) => c.children && c.children.length > 0)
+  
+  let roots: Category[] = []
+  
+  if (hasAnyChildren) {
+    // Si les enfants sont déjà populés, utiliser directement la structure
+    roots = allCategories.filter((c) => !c.parentId && !c.parent)
+  } else {
+    // Sinon, construire l'arbre hiérarchique manuellement
+    const idToNode = new Map<string, Category>()
+    allCategories.forEach((c) => {
+      idToNode.set(c.id, { ...c, children: [] })
+    })
+
+    const processed = new Set<string>()
+
+    idToNode.forEach((node) => {
+      if (processed.has(node.id)) return
+
+      const parentId = node.parentId || node.parent?.id
+      if (parentId) {
+        const parent = idToNode.get(parentId)
+        if (parent) {
+          if (!parent.children) parent.children = []
+          parent.children.push(node)
+          processed.add(node.id)
+        } else {
+          // Parent introuvable, traiter comme racine
+          roots.push(node)
+          processed.add(node.id)
+        }
+      } else {
+        roots.push(node)
+        processed.add(node.id)
+      }
+    })
+  }
+
+  // Trier récursivement
+  const sortDeep = (nodes: Category[]) => {
+    nodes.sort((a, b) => a.name.localeCompare(b.name))
+    nodes.forEach((n) => n.children && n.children.length > 0 && sortDeep(n.children))
+  }
+  sortDeep(roots)
+
+  // Parcourir l'arbre pour créer une liste plate avec indentation
+  const result: CategoryWithIndent[] = []
+  const indentChar = '\u00A0\u00A0' // Espaces non-break pour l'indentation
+
+  const traverse = (node: Category, level: number, visited = new Set<string>()) => {
+    // Éviter les références circulaires
+    if (visited.has(node.id)) {
+      return
+    }
+    visited.add(node.id)
+
+    // Créer l'indentation visuelle
+    const indent = level > 0 ? indentChar.repeat(level) + '└─ ' : ''
+    result.push({
+      category: node,
+      indentLevel: level,
+      displayText: `${indent}${node.name}`
+    })
+
+    // Parcourir les enfants récursivement
+    if (node.children && node.children.length > 0) {
+      sortDeep(node.children)
+      node.children.forEach((child) => {
+        traverse(child, level + 1, visited)
+      })
+    }
+  }
+
+  roots.forEach((root) => {
+    traverse(root, 0)
+  })
+
+  return result
 }
 

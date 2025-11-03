@@ -86,11 +86,11 @@
               >
                 <option value="">Sélectionner une catégorie</option>
                 <option
-                  v-for="category in categories"
-                  :key="category.id"
-                  :value="category.id"
+                  v-for="item in categoriesWithIndent"
+                  :key="item.category.id"
+                  :value="item.category.id"
                 >
-                  {{ getCategoryHierarchyPath(category, categories) }}
+                  {{ item.displayText }}
                 </option>
               </select>
               <p v-if="errors.model.categoryId" class="form-error">{{ errors.model.categoryId }}</p>
@@ -334,7 +334,7 @@ import { useCreateMaterialModel } from '@/composables/useMaterialModels'
 import { useCreateItem } from '@/composables/useItems'
 import { useSetItemStatus } from '@/composables/useStatuses'
 import { uploadsApi } from '@/api/endpoints/uploads'
-import { getCategoryHierarchyPath } from '@/utils/categoryUtils'
+import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import CameraCapture from '@/components/CameraCapture.vue'
 import type { CreateMaterialModelDto, CreateItemDto } from '@/types'
 
@@ -344,6 +344,9 @@ const emit = defineEmits<{ (e: 'close'): void; (e: 'created'): void }>()
 const { data: categories } = useCategories()
 const { data: statuses } = useStatuses()
 const { data: locations } = useLocations()
+
+// Catégories avec indentation hiérarchique
+const categoriesWithIndent = computed(() => getCategoriesWithIndent(categories.value))
 
 // Mutations
 const createModelMutation = useCreateMaterialModel()

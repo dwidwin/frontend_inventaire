@@ -62,11 +62,11 @@
             >
               <option value="">Aucune (catégorie racine)</option>
               <option
-                v-for="category in availableParentCategories"
-                :key="category.id"
-                :value="category.id"
+                v-for="item in availableParentCategoriesWithIndent"
+                :key="item.category.id"
+                :value="item.category.id"
               >
-                {{ getCategoryDisplayName(category) }}
+                {{ item.displayText }}
               </option>
             </select>
             <p class="mt-1 text-sm text-gray-500">
@@ -125,7 +125,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { useCategories, useCreateCategory, useUpdateCategory } from '@/composables/useCategories'
-import { getCategoryHierarchyPath } from '@/utils/categoryUtils'
+import { getCategoryHierarchyPath, getCategoriesWithIndent } from '@/utils/categoryUtils'
 import type { CreateCategoryDto, UpdateCategoryDto, Category } from '@/types'
 
 // Props
@@ -208,27 +208,30 @@ const canSubmit = computed(() => {
   return form.name.trim().length > 0 && !isSubmitting.value
 })
 
-// Catégories disponibles comme parents (exclut les catégories qui auraient déjà 2 niveaux de profondeur)
-const availableParentCategories = computed(() => {
+// Catégories disponibles comme parents avec indentation (exclut les catégories qui auraient déjà 2 niveaux de profondeur)
+const availableParentCategoriesWithIndent = computed(() => {
   if (!categories.value) return []
   
   // Fonction pour calculer la profondeur d'une catégorie
   const getCategoryDepth = (category: Category, allCategories: Category[]): number => {
-    if (!category.parentId) return 0
-    const parent = allCategories.find(c => c.id === category.parentId)
+    const parentId = category.parentId || category.parent?.id
+    if (!parentId) return 0
+    const parent = allCategories.find(c => c.id === parentId)
     return parent ? 1 + getCategoryDepth(parent, allCategories) : 0
   }
   
-  return categories.value.filter(category => {
+  // Filtrer les catégories (limite à 2 niveaux de profondeur maximum)
+  const filtered = categories.value.filter(category => {
     const depth = getCategoryDepth(category, categories.value!)
-    return depth < 2 // Limite à 2 niveaux de profondeur maximum
+    return depth < 2
+  })
+  
+  // Obtenir la liste avec indentation
+  return getCategoriesWithIndent(filtered).filter(item => {
+    // Inclure toutes les catégories filtrées (y compris les sous-catégories jusqu'à niveau 1)
+    return true
   })
 })
-
-// Fonction pour obtenir le nom d'affichage d'une catégorie avec sa hiérarchie complète
-const getCategoryDisplayName = (category: Category): string => {
-  return getCategoryHierarchyPath(category, categories.value)
-}
 
 // Fonction pour obtenir la hiérarchie complète d'une catégorie (tableau)
 const getCategoryHierarchy = (categoryId: string): Category[] => {

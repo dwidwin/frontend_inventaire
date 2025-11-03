@@ -32,11 +32,11 @@
         >
           <option value="">Toutes les catégories</option>
           <option
-            v-for="category in categories"
-            :key="category.id"
-            :value="category.id"
+            v-for="item in categoriesWithIndent"
+            :key="item.category.id"
+            :value="item.category.id"
           >
-            {{ getCategoryHierarchyPath(category, categories) }}
+            {{ item.displayText }}
           </option>
         </select>
 
@@ -155,7 +155,7 @@ import { useItems } from '@/composables/useItems'
 import { useCategories } from '@/composables/useCategories'
 import { useLocations } from '@/composables/useLocations'
 import { useStatuses } from '@/composables/useStatuses'
-import { getCategoryHierarchyPath } from '@/utils/categoryUtils'
+import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import StatusBadge from '@/components/StatusBadge.vue'
 import type { Item } from '@/types'
 
@@ -164,6 +164,9 @@ const { data: items, isLoading } = useItems()
 const { data: categories } = useCategories()
 const { data: locations } = useLocations()
 const { data: statuses } = useStatuses()
+
+// Catégories avec indentation hiérarchique
+const categoriesWithIndent = computed(() => getCategoriesWithIndent(categories.value))
 
 // État local pour les filtres
 const searchQuery = ref('')
