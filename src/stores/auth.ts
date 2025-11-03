@@ -10,10 +10,19 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshToken = ref<string | null>(localStorage.getItem('refreshToken'))
   const isLoading = ref(false)
 
+  // Helper pour normaliser le rôle
+  const normalizeRole = (role: string | undefined): string => {
+    if (!role) return ''
+    return role.toUpperCase()
+  }
+
   // Getters
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
-  const isAdmin = computed(() => user.value?.role === 'ADMIN')
-  const isManager = computed(() => user.value?.role === 'MANAGER' || isAdmin.value)
+  const isAdmin = computed(() => normalizeRole(user.value?.role) === 'ADMIN')
+  const isManager = computed(() => {
+    const role = normalizeRole(user.value?.role)
+    return role === 'MANAGER' || role === 'ADMIN'
+  })
   const canManageUsers = computed(() => isManager.value)
   const canManageInventory = computed(() => isManager.value)
 
@@ -42,7 +51,14 @@ export const useAuthStore = defineStore('auth', () => {
     
     try {
       const response = await apiGet<User>('/api/auth/me')
-      user.value = response
+      // Normaliser le rôle en majuscules pour assurer la cohérence
+      const normalizedRole = normalizeRole(response.role) as 'USER' | 'MANAGER' | 'ADMIN'
+      user.value = {
+        ...response,
+        role: normalizedRole
+      }
+      // Debug: afficher le rôle normalisé (à retirer en production si nécessaire)
+      console.log('Rôle utilisateur:', { original: response.role, normalized: normalizedRole, isAdmin: normalizedRole === 'ADMIN', isManager: normalizedRole === 'MANAGER' || normalizedRole === 'ADMIN' })
     } catch (error) {
       console.error('Erreur lors de la récupération du profil:', error)
       // Si erreur, déconnecter l'utilisateur
@@ -79,7 +95,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const updateUser = (updatedUser: User): void => {
-    user.value = updatedUser
+    // Normaliser le rôle lors de la mise à jour
+    user.value = {
+      ...updatedUser,
+      role: normalizeRole(updatedUser.role) as 'USER' | 'MANAGER' | 'ADMIN'
+    }
   }
 
   // Initialisation au démarrage de l'app
