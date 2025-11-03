@@ -90,7 +90,7 @@
                   :key="category.id"
                   :value="category.id"
                 >
-                  {{ category.name }}
+                  {{ getCategoryHierarchyPath(category, categories) }}
                 </option>
               </select>
               <p v-if="errors.model.categoryId" class="form-error">{{ errors.model.categoryId }}</p>
@@ -334,6 +334,7 @@ import { useCreateMaterialModel } from '@/composables/useMaterialModels'
 import { useCreateItem } from '@/composables/useItems'
 import { useSetItemStatus } from '@/composables/useStatuses'
 import { uploadsApi } from '@/api/endpoints/uploads'
+import { getCategoryHierarchyPath } from '@/utils/categoryUtils'
 import CameraCapture from '@/components/CameraCapture.vue'
 import type { CreateMaterialModelDto, CreateItemDto } from '@/types'
 

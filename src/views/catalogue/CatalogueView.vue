@@ -36,7 +36,7 @@
             :key="category.id"
             :value="category.id"
           >
-            {{ category.name }}
+            {{ getCategoryHierarchyPath(category, categories) }}
           </option>
         </select>
 
@@ -155,6 +155,7 @@ import { useItems } from '@/composables/useItems'
 import { useCategories } from '@/composables/useCategories'
 import { useLocations } from '@/composables/useLocations'
 import { useStatuses } from '@/composables/useStatuses'
+import { getCategoryHierarchyPath } from '@/utils/categoryUtils'
 import StatusBadge from '@/components/StatusBadge.vue'
 import type { Item } from '@/types'
 

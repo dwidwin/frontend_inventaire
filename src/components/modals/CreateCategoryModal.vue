@@ -125,6 +125,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { useCategories, useCreateCategory, useUpdateCategory } from '@/composables/useCategories'
+import { getCategoryHierarchyPath } from '@/utils/categoryUtils'
 import type { CreateCategoryDto, UpdateCategoryDto, Category } from '@/types'
 
 // Props
@@ -224,31 +225,27 @@ const availableParentCategories = computed(() => {
   })
 })
 
-// Fonction pour obtenir le nom d'affichage d'une catégorie avec sa hiérarchie
+// Fonction pour obtenir le nom d'affichage d'une catégorie avec sa hiérarchie complète
 const getCategoryDisplayName = (category: Category): string => {
-  if (!category.parentId) return category.name
-  
-  const parent = categories.value?.find(c => c.id === category.parentId)
-  if (parent) {
-    return `${parent.name} → ${category.name}`
-  }
-  
-  return category.name
+  return getCategoryHierarchyPath(category, categories.value)
 }
 
-// Fonction pour obtenir la hiérarchie complète d'une catégorie
+// Fonction pour obtenir la hiérarchie complète d'une catégorie (tableau)
 const getCategoryHierarchy = (categoryId: string): Category[] => {
   if (!categories.value) return []
   
   const hierarchy: Category[] = []
   let currentId = categoryId
+  const visited = new Set<string>()
   
-  while (currentId) {
+  while (currentId && !visited.has(currentId)) {
+    visited.add(currentId)
     const category = categories.value.find(c => c.id === currentId)
     if (!category) break
     
     hierarchy.unshift(category)
-    currentId = category.parentId || ''
+    // Chercher le parent soit via parentId, soit via la référence parent imbriquée
+    currentId = category.parentId || category.parent?.id || ''
   }
   
   return hierarchy
