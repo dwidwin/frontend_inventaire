@@ -3,23 +3,23 @@ import type { Product, CreateProductDto, UpdateProductDto } from '@/types'
 
 export const productsApi = {
   list: (): Promise<Product[]> => {
-    return apiGet<Product[]>('/buvette/products')
+    return apiGet<Product[]>('/api/buvette/products')
   },
 
   get: (id: string): Promise<Product> => {
-    return apiGet<Product>(`/buvette/products/${id}`)
+    return apiGet<Product>(`/api/buvette/products/${id}`)
   },
 
   create: (data: CreateProductDto): Promise<Product> => {
-    return apiPost<Product>('/buvette/products', data)
+    return apiPost<Product>('/api/buvette/products', data)
   },
 
   update: (id: string, data: UpdateProductDto): Promise<Product> => {
-    return apiPatch<Product>(`/buvette/products/${id}`, data)
+    return apiPatch<Product>(`/api/buvette/products/${id}`, data)
   },
 
   delete: (id: string): Promise<void> => {
-    return apiDelete<void>(`/buvette/products/${id}`)
+    return apiDelete<void>(`/api/buvette/products/${id}`)
   },
 }
 

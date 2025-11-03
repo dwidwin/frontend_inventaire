@@ -3,23 +3,23 @@ import type { BuvetteCategory, CreateBuvetteCategoryDto, UpdateBuvetteCategoryDt
 
 export const buvetteCategoriesApi = {
   list: (): Promise<BuvetteCategory[]> => {
-    return apiGet<BuvetteCategory[]>('/buvette/categories')
+    return apiGet<BuvetteCategory[]>('/api/buvette/categories')
   },
 
   get: (id: string): Promise<BuvetteCategory> => {
-    return apiGet<BuvetteCategory>(`/buvette/categories/${id}`)
+    return apiGet<BuvetteCategory>(`/api/buvette/categories/${id}`)
   },
 
   create: (data: CreateBuvetteCategoryDto): Promise<BuvetteCategory> => {
-    return apiPost<BuvetteCategory>('/buvette/categories', data)
+    return apiPost<BuvetteCategory>('/api/buvette/categories', data)
   },
 
   update: (id: string, data: UpdateBuvetteCategoryDto): Promise<BuvetteCategory> => {
-    return apiPatch<BuvetteCategory>(`/buvette/categories/${id}`, data)
+    return apiPatch<BuvetteCategory>(`/api/buvette/categories/${id}`, data)
   },
 
   delete: (id: string): Promise<void> => {
-    return apiDelete<void>(`/buvette/categories/${id}`)
+    return apiDelete<void>(`/api/buvette/categories/${id}`)
   },
 }
 

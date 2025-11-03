@@ -138,11 +138,9 @@ const navigationItems = computed(() => {
       { name: 'Équipes', href: '/teams', icon: 'UsersIcon' },
       { name: 'Emplacements', href: '/locations', icon: 'MapPinIcon' },
       { name: 'Affectations', href: '/assignments', icon: 'UserGroupIcon' },
-      { name: 'Buvette', href: '/buvette/products', icon: 'ShoppingBagIcon', children: [
-        { name: 'Produits', href: '/buvette/products' },
-        { name: 'Stock', href: '/buvette/stock' },
-        { name: 'Ventes', href: '/buvette/sales' }
-      ]}
+      { name: 'Buvette - Produits', href: '/buvette/products', icon: 'CubeIcon' },
+      { name: 'Buvette - Stock', href: '/buvette/stock', icon: 'CubeIcon' },
+      { name: 'Buvette - Ventes', href: '/buvette/sales', icon: 'CurrencyDollarIcon' }
     )
   }
 
