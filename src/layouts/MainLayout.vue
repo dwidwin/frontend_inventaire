@@ -137,7 +137,12 @@ const navigationItems = computed(() => {
     items.push(
       { name: 'Équipes', href: '/teams', icon: 'UsersIcon' },
       { name: 'Emplacements', href: '/locations', icon: 'MapPinIcon' },
-      { name: 'Affectations', href: '/assignments', icon: 'UserGroupIcon' }
+      { name: 'Affectations', href: '/assignments', icon: 'UserGroupIcon' },
+      { name: 'Buvette', href: '/buvette/products', icon: 'ShoppingBagIcon', children: [
+        { name: 'Produits', href: '/buvette/products' },
+        { name: 'Stock', href: '/buvette/stock' },
+        { name: 'Ventes', href: '/buvette/sales' }
+      ]}
     )
   }
 
