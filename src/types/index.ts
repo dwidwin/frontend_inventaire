@@ -374,3 +374,115 @@ export interface UpdateUserDto {
   role?: 'admin' | 'manager' | 'user'
   isActive?: boolean
 }
+
+// Buvette - Catégories
+export interface BuvetteCategory extends BaseEntity {
+  name: string
+  description?: string
+  parentId?: string
+  parent?: BuvetteCategory
+  children?: BuvetteCategory[]
+}
+
+export interface CreateBuvetteCategoryDto {
+  name: string
+  description?: string
+  parentId?: string
+}
+
+export interface UpdateBuvetteCategoryDto {
+  name?: string
+  description?: string
+  parentId?: string
+}
+
+// Buvette - Produits
+export interface Product extends BaseEntity {
+  name: string
+  description?: string
+  categoryId: string
+  category?: BuvetteCategory
+  price?: string
+  mainImageUrl?: string
+  stocks?: Stock[]
+}
+
+export interface CreateProductDto {
+  name: string
+  description?: string
+  categoryId: string
+  price?: string
+  mainImageUrl?: string
+}
+
+export interface UpdateProductDto {
+  name?: string
+  description?: string
+  categoryId?: string
+  price?: string
+  mainImageUrl?: string
+}
+
+// Buvette - Stock
+export interface Stock extends BaseEntity {
+  productId: string
+  product?: Product
+  locationId?: string
+  location?: Location
+  quantity: number
+  minQuantity?: number
+  saleLines?: SaleLine[]
+}
+
+export interface CreateStockDto {
+  productId: string
+  locationId?: string
+  quantity: number
+  minQuantity?: number
+}
+
+export interface UpdateStockDto {
+  locationId?: string
+  quantity?: number
+  minQuantity?: number
+}
+
+export interface AdjustStockDto {
+  quantity: number
+  reason: string
+}
+
+// Buvette - Ventes
+export interface Sale extends BaseEntity {
+  saleDate: string
+  status: 'completed' | 'cancelled'
+  totalAmount?: string
+  counterpartyUserId?: string
+  counterpartyUser?: User
+  counterpartyTeamId?: string
+  counterpartyTeam?: Team
+  externalName?: string
+  notes?: string
+  lines?: SaleLine[]
+}
+
+export interface SaleLine extends BaseEntity {
+  saleId: string
+  sale?: Sale
+  stockId: string
+  stock?: Stock
+  quantity: number
+  unitPrice?: string
+}
+
+export interface CreateBuvetteSaleDto {
+  userId?: string
+  teamId?: string
+  externalName?: string
+  notes?: string
+  lines: {
+    stockId: string
+    quantity: number
+    unitPrice?: string
+  }[]
+}
