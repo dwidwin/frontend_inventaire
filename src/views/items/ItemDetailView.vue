@@ -221,6 +221,12 @@
     </div>
 
     <!-- Modals -->
+    <EditItemModal
+      v-if="showEditModal && item"
+      :item="item"
+      @close="showEditModal = false"
+      @updated="handleItemUpdated"
+    />
     <SetItemStatusModal
       v-if="showStatusModal"
       :item-id="itemId"
@@ -235,16 +241,18 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useItem } from '@/composables/useItems'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
 import { statusesApi } from '@/api/endpoints/statuses'
 import { useItemActiveStatusByGroup, useItemStatusHistory } from '@/composables/useStatuses'
 import { formatDate, formatDateTime } from '@/utils/formatDate'
 import StatusBadge from '@/components/StatusBadge.vue'
+import EditItemModal from '@/components/modals/EditItemModal.vue'
 import SetItemStatusModal from '@/components/modals/SetItemStatusModal.vue'
 import { StatusGroup } from '@/types'
 
 const authStore = useAuthStore()
+const queryClient = useQueryClient()
 
 const route = useRoute()
 const itemId = route.params.id as string
@@ -288,6 +296,12 @@ const getGroupLabel = (group: StatusGroup): string => {
 }
 
 // Handlers
+const handleItemUpdated = () => {
+  showEditModal.value = false
+  // Invalider la requête pour recharger les données de l'item
+  queryClient.invalidateQueries({ queryKey: ['items', itemId] })
+}
+
 const handleStatusUpdated = () => {
   showStatusModal.value = false
 }
