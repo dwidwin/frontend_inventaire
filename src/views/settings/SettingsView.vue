@@ -463,14 +463,18 @@ const { data: items, isLoading: isLoadingItems } = useItems()
 const statusQueries = useQueries({
   queries: computed(() => {
     if (!items.value) return []
-    return items.value.map((item) => ({
+    const queries = items.value.map((item) => ({
       queryKey: ['item-statuses', 'active', item.id],
       queryFn: async () => {
         const { statusesApi } = await import('@/api/endpoints/statuses')
-        return statusesApi.getItemActiveStatus(item.id)
+        const result = await statusesApi.getItemActiveStatus(item.id)
+        console.log(`API response for item ${item.id}:`, result)
+        return result
       },
       enabled: !!item.id,
     }))
+    console.log('Status queries created:', queries.length)
+    return queries
   }),
 })
 
@@ -480,9 +484,17 @@ const itemStatusesMap = computed(() => {
   if (!items.value) return map
   
   items.value.forEach((item, index) => {
-    const statuses = statusQueries.value[index]?.data?.value || []
+    const queryResult = statusQueries.value[index]
+    if (!queryResult) return
+    
+    const statuses = queryResult.data?.value || []
+    
+    // Debug temporaire
     if (statuses.length > 0) {
+      console.log(`Item ${item.id} - Statuts trouvés:`, statuses)
       map[item.id] = statuses
+    } else {
+      console.log(`Item ${item.id} - Aucun statut, queryResult:`, queryResult)
     }
   })
   
