@@ -602,6 +602,15 @@ const handleSubmit = async () => {
     if (isEditMode.value && props.item) {
       // MODE ÉDITION
       
+      // 0. Mettre à jour statusKey pour compatibilité legacy (premier statut sélectionné)
+      // Cela doit être fait AVANT la mise à jour de l'item pour que le champ etat soit correct
+      const selectedKeys = form.item.selectedStatusKeys.filter(key => key.trim())
+      if (selectedKeys.length > 0) {
+        form.item.statusKey = selectedKeys[0]
+      } else {
+        form.item.statusKey = ''
+      }
+      
       // 1. Mettre à jour l'item
       await updateItemMutation.mutateAsync({
         id: props.item.id,
@@ -617,7 +626,7 @@ const handleSubmit = async () => {
         await uploadsApi.uploadItemImage(props.item.id, form.photos.item.file)
       }
       
-      // 3. Gérer les statuts sélectionnés
+      // 2. Gérer les statuts sélectionnés
       // Le système ne permet qu'un seul statut actif par groupe
       // On doit comparer les statuts actifs par groupe avec les statuts sélectionnés
       console.log('🔵 [EDIT ITEM] Début de la gestion des statuts')
@@ -625,7 +634,7 @@ const handleSubmit = async () => {
       console.log('🔵 [EDIT ITEM] Statuts actifs AVANT modification:', activeItemStatuses.value)
       console.log('🔵 [EDIT ITEM] selectedStatusKeys du formulaire:', form.item.selectedStatusKeys)
       
-      const selectedKeys = form.item.selectedStatusKeys.filter(key => key.trim())
+      // Utiliser selectedKeys déjà défini plus haut
       console.log('🔵 [EDIT ITEM] selectedKeys filtrés:', selectedKeys)
       
       // Créer un map des statuts actifs par groupe
@@ -699,17 +708,13 @@ const handleSubmit = async () => {
         }
       }
       
-      // Mettre à jour statusKey pour compatibilité legacy (premier statut sélectionné)
-      if (selectedKeys.length > 0) {
-        form.item.statusKey = selectedKeys[0]
-      }
-      
       // Attendre un peu pour que les queries soient invalidées et rafraîchies
       await new Promise(resolve => setTimeout(resolve, 500))
       
       // Récupérer les statuts actifs après modification pour vérification
+      let updatedStatuses: any[] = []
       try {
-        const updatedStatuses = await statusesApi.getItemActiveStatus(props.item.id)
+        updatedStatuses = await statusesApi.getItemActiveStatus(props.item.id)
         console.log('🔵 [EDIT ITEM] Statuts actifs APRÈS modification:', updatedStatuses)
         console.log('🔵 [EDIT ITEM] Résumé des statuts par groupe APRÈS:')
         updatedStatuses.forEach(itemStatus => {
@@ -719,6 +724,41 @@ const handleSubmit = async () => {
         })
       } catch (error) {
         console.error('🔵 [EDIT ITEM] Erreur lors de la récupération des statuts après modification:', error)
+      }
+      
+      // Mettre à jour le champ etat de l'Item avec le premier statut actif (legacy)
+      // Cela garantit que le champ etat est synchronisé avec les statuts réels
+      if (updatedStatuses.length > 0) {
+        const firstStatus = updatedStatuses.find(itemStatus => itemStatus.status?.key)
+        if (firstStatus?.status?.key) {
+          console.log(`🔵 [EDIT ITEM] Mise à jour du champ etat avec: ${firstStatus.status.key}`)
+          try {
+            await updateItemMutation.mutateAsync({
+              id: props.item.id,
+              data: {
+                etat: firstStatus.status.key
+              }
+            })
+            console.log('🔵 [EDIT ITEM] ✅ Champ etat mis à jour')
+          } catch (error) {
+            console.error('🔵 [EDIT ITEM] ❌ Erreur lors de la mise à jour du champ etat:', error)
+            // Ne pas bloquer si la mise à jour échoue
+          }
+        }
+      } else {
+        // Si aucun statut actif, mettre etat à vide ou null
+        console.log('🔵 [EDIT ITEM] Aucun statut actif, mise à jour du champ etat à vide')
+        try {
+          await updateItemMutation.mutateAsync({
+            id: props.item.id,
+            data: {
+              etat: undefined
+            }
+          })
+          console.log('🔵 [EDIT ITEM] ✅ Champ etat mis à vide')
+        } catch (error) {
+          console.error('🔵 [EDIT ITEM] ❌ Erreur lors de la mise à jour du champ etat:', error)
+        }
       }
       
       // Succès
