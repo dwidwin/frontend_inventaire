@@ -210,6 +210,50 @@
         </DataTable>
       </div>
 
+      <!-- Statuts -->
+      <div v-if="activeTab === 'statuses'">
+        <div class="mb-6 flex justify-between items-center">
+          <h2 class="text-lg font-medium text-gray-900">Gestion des statuts</h2>
+          <button
+            @click="showCreateStatusModal = true"
+            class="btn btn-primary"
+          >
+            <PlusIcon class="h-5 w-5 mr-2" />
+            Ajouter un statut
+          </button>
+        </div>
+
+        <DataTable
+          :data="statuses || []"
+          :columns="statusColumns"
+          :is-loading="isLoadingStatuses"
+          @edit="handleEditStatus"
+          @delete="handleDeleteStatus"
+        >
+          <template #cell-group="{ item }">
+            <span class="text-sm text-gray-900">{{ getGroupLabel(item.group) }}</span>
+          </template>
+          
+          <template #cell-color="{ item }">
+            <div class="flex items-center space-x-2">
+              <div
+                class="h-6 w-6 rounded-full border border-gray-300"
+                :style="{ backgroundColor: item.color || '#9CA3AF' }"
+              />
+              <span v-if="item.color" class="text-xs text-gray-500 font-mono">{{ item.color }}</span>
+              <span v-else class="text-xs text-gray-400">Par défaut</span>
+            </div>
+          </template>
+
+          <template #cell-isActive="{ item }">
+            <StatusBadge
+              :status="item.isActive ? 'Actif' : 'Inactif'"
+              :color="item.isActive ? 'success' : 'danger'"
+            />
+          </template>
+        </DataTable>
+      </div>
+
       <!-- Gestion des utilisateurs -->
       <div v-if="activeTab === 'users'">
         <div class="mb-6 flex justify-between items-center">
@@ -295,6 +339,27 @@
       @close="showDeleteItemModal = false"
       @confirmed="handleItemDeleted"
     />
+
+    <!-- Modals Statuts -->
+    <CreateStatusModal
+      v-if="showCreateStatusModal"
+      @close="showCreateStatusModal = false"
+      @created="handleStatusCreated"
+    />
+    
+    <EditStatusModal
+      v-if="showEditStatusModal && selectedStatus"
+      :status="selectedStatus"
+      @close="showEditStatusModal = false"
+      @updated="handleStatusUpdated"
+    />
+    
+    <DeleteStatusModal
+      v-if="showDeleteStatusModal && selectedStatus"
+      :status="selectedStatus"
+      @close="showDeleteStatusModal = false"
+      @confirmed="handleStatusDeleted"
+    />
   </div>
 </template>
 
@@ -304,6 +369,7 @@ import { PlusIcon, CurrencyDollarIcon } from '@heroicons/vue/24/outline'
 import { useCategories } from '@/composables/useCategories'
 import { useUsers } from '@/composables/useUsers'
 import { useItems } from '@/composables/useItems'
+import { useStatuses, useDeleteStatus } from '@/composables/useStatuses'
 import { useQuery } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints/materialModels'
 import { transactionsApi } from '@/api/endpoints/transactions'
@@ -315,8 +381,12 @@ import EditCategoryModal from '@/components/modals/EditCategoryModal.vue'
 import CreateModelModal from '@/components/modals/CreateModelModal.vue'
 import EditModelModal from '@/components/modals/EditModelModal.vue'
 import CreateItemModal from '@/components/modals/CreateItemModal.vue'
+import CreateStatusModal from '@/components/modals/CreateStatusModal.vue'
+import EditStatusModal from '@/components/modals/EditStatusModal.vue'
+import DeleteStatusModal from '@/components/modals/DeleteStatusModal.vue'
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
-import type { Category, MaterialModel, Transaction, User, Item } from '@/types'
+import type { Category, MaterialModel, Transaction, User, Item, Status, StatusGroup } from '@/types'
+import { StatusGroup as StatusGroupEnum } from '@/types'
 
 // Tabs
 const tabs = [
@@ -324,6 +394,7 @@ const tabs = [
   { name: 'models', label: 'Modèles' },
   { name: 'items', label: 'Items' },
   { name: 'transactions', label: 'Transactions' },
+  { name: 'statuses', label: 'Statuts' },
   { name: 'users', label: 'Gestion des utilisateurs' },
 ]
 
@@ -341,6 +412,8 @@ const { data: transactions, isLoading: isLoadingTransactions } = useQuery({
   queryFn: () => transactionsApi.list(),
 })
 const { data: users, isLoading: isLoadingUsers } = useUsers()
+const { data: statuses, isLoading: isLoadingStatuses } = useStatuses()
+const deleteStatusMutation = useDeleteStatus()
 
 // État local - Catégories
 const showCreateCategoryModal = ref(false)
@@ -367,6 +440,12 @@ const selectedItem = ref<Item | null>(null)
 const showCreateUserModal = ref(false)
 const selectedUser = ref<User | null>(null)
 
+// État local - Statuts
+const showCreateStatusModal = ref(false)
+const showEditStatusModal = ref(false)
+const showDeleteStatusModal = ref(false)
+const selectedStatus = ref<Status | null>(null)
+
 // Colonnes pour les modèles
 const modelColumns = [
   { key: 'name', label: 'Nom', sortable: true },
@@ -392,6 +471,17 @@ const itemColumns = [
   { key: 'location', label: 'Emplacement', sortable: true },
   { key: 'codeBarre', label: 'Code-barres', sortable: true },
   { key: 'etat', label: 'État', sortable: true },
+  { key: 'createdAt', label: 'Créé le', sortable: true },
+]
+
+// Colonnes pour les statuts
+const statusColumns = [
+  { key: 'key', label: 'Clé', sortable: true },
+  { key: 'label', label: 'Libellé', sortable: true },
+  { key: 'group', label: 'Groupe', sortable: true },
+  { key: 'color', label: 'Couleur', sortable: false },
+  { key: 'sortOrder', label: 'Ordre', sortable: true },
+  { key: 'isActive', label: 'Statut', sortable: true },
   { key: 'createdAt', label: 'Créé le', sortable: true },
 ]
 
@@ -482,6 +572,38 @@ const handleDeleteTransaction = (transaction: Transaction) => {
   console.log('Delete transaction:', transaction)
 }
 
+// Actions pour les statuts
+const handleEditStatus = (status: Status) => {
+  selectedStatus.value = status
+  showEditStatusModal.value = true
+}
+
+const handleDeleteStatus = (status: Status) => {
+  selectedStatus.value = status
+  showDeleteStatusModal.value = true
+}
+
+const handleStatusCreated = () => {
+  showCreateStatusModal.value = false
+}
+
+const handleStatusUpdated = () => {
+  showEditStatusModal.value = false
+  selectedStatus.value = null
+}
+
+const handleStatusDeleted = async () => {
+  if (!selectedStatus.value) return
+  
+  try {
+    await deleteStatusMutation.mutateAsync(selectedStatus.value.id)
+    showDeleteStatusModal.value = false
+    selectedStatus.value = null
+  } catch (error) {
+    console.error('Erreur lors de la suppression du statut:', error)
+  }
+}
+
 // Actions pour les utilisateurs
 const handleEditUser = (user: User) => {
   selectedUser.value = user
@@ -503,6 +625,16 @@ const getRoleColor = (role: string) => {
     USER: 'primary',
   }
   return roleColors[role as keyof typeof roleColors] || 'gray'
+}
+
+const getGroupLabel = (group: StatusGroup): string => {
+  const labels: Record<StatusGroup, string> = {
+    [StatusGroupEnum.COMMERCIAL]: 'Commercial',
+    [StatusGroupEnum.AUDIENCE]: 'Audience',
+    [StatusGroupEnum.CONDITION]: 'Condition',
+    [StatusGroupEnum.LIFECYCLE]: 'Cycle de vie',
+  }
+  return labels[group] || group
 }
 
 // Construire l'arborescence des catégories
