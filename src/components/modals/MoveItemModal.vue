@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { useLocations } from '@/composables/useLocations'
 import { useMoveItem } from '@/composables/useItems'
@@ -122,6 +122,13 @@ const form = ref({
 const error = ref('')
 const isSubmitting = ref(false)
 
+// Initialiser avec l'emplacement actuel de l'item
+watch(item, (newItem) => {
+  if (newItem?.location?.id && form.value.locationId === '') {
+    form.value.locationId = newItem.location.id
+  }
+}, { immediate: true })
+
 // Locations avec indentation pour le select
 const locationsWithIndent = computed(() => {
   return getLocationsWithIndent(locations.value)
@@ -141,19 +148,24 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
+    console.log('MoveItemModal - Valeur du formulaire:', form.value.locationId)
+    
     // Construire l'objet data selon la sélection
-    // Si locationId est vide, on envoie null pour retirer l'emplacement
-    // Sinon, on envoie l'UUID sélectionné
+    // Le backend avec @IsOptional() et @IsUUID() peut avoir des problèmes avec null
+    // Donc on va toujours envoyer locationId, même si c'est pour retirer
     const data: { locationId?: string | null } = {}
     
     if (form.value.locationId === '') {
-      // Retirer l'emplacement
+      // Retirer l'emplacement : envoyer null explicitement
+      // Note: Le validateur peut rejeter null, mais c'est la seule façon de retirer
       data.locationId = null
     } else if (form.value.locationId) {
-      // Définir un nouvel emplacement
+      // Définir un nouvel emplacement : envoyer l'UUID
       data.locationId = form.value.locationId
     }
     // Si locationId n'est pas défini, on n'envoie rien (undefined) pour ne rien changer
+    
+    console.log('MoveItemModal - Données envoyées:', { itemId: props.itemId, data })
     
     await moveItemMutation.mutateAsync({
       id: props.itemId,
@@ -163,6 +175,7 @@ const handleSubmit = async () => {
     emit('updated')
     handleClose()
   } catch (err: any) {
+    console.error('MoveItemModal - Erreur:', err)
     error.value = err?.response?.data?.message || err?.message || 'Une erreur est survenue'
   } finally {
     isSubmitting.value = false
