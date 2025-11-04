@@ -141,11 +141,23 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
+    // Construire l'objet data selon la sélection
+    // Si locationId est vide, on envoie null pour retirer l'emplacement
+    // Sinon, on envoie l'UUID sélectionné
+    const data: { locationId?: string | null } = {}
+    
+    if (form.value.locationId === '') {
+      // Retirer l'emplacement
+      data.locationId = null
+    } else if (form.value.locationId) {
+      // Définir un nouvel emplacement
+      data.locationId = form.value.locationId
+    }
+    // Si locationId n'est pas défini, on n'envoie rien (undefined) pour ne rien changer
+    
     await moveItemMutation.mutateAsync({
       id: props.itemId,
-      data: {
-        locationId: form.value.locationId || null,
-      },
+      data,
     })
 
     emit('updated')
