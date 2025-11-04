@@ -413,7 +413,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, unref } from 'vue'
 import { PlusIcon, CurrencyDollarIcon } from '@heroicons/vue/24/outline'
 import { useCategories } from '@/composables/useCategories'
 import { useUsers } from '@/composables/useUsers'
@@ -463,18 +463,14 @@ const { data: items, isLoading: isLoadingItems } = useItems()
 const statusQueries = useQueries({
   queries: computed(() => {
     if (!items.value) return []
-    const queries = items.value.map((item) => ({
+    return items.value.map((item) => ({
       queryKey: ['item-statuses', 'active', item.id],
       queryFn: async () => {
         const { statusesApi } = await import('@/api/endpoints/statuses')
-        const result = await statusesApi.getItemActiveStatus(item.id)
-        console.log(`API response for item ${item.id}:`, result)
-        return result
+        return statusesApi.getItemActiveStatus(item.id)
       },
       enabled: !!item.id,
     }))
-    console.log('Status queries created:', queries.length)
-    return queries
   }),
 })
 
@@ -485,16 +481,13 @@ const itemStatusesMap = computed(() => {
   
   items.value.forEach((item, index) => {
     const queryResult = statusQueries.value[index]
-    if (!queryResult) return
+    if (!queryResult || !queryResult.isSuccess) return
     
-    const statuses = queryResult.data?.value || []
+    // Dans Vue Query v5, data est un Ref. Utilisons unref pour être sûr de déballer le Ref
+    const statuses = unref(queryResult.data) || []
     
-    // Debug temporaire
-    if (statuses.length > 0) {
-      console.log(`Item ${item.id} - Statuts trouvés:`, statuses)
+    if (Array.isArray(statuses) && statuses.length > 0) {
       map[item.id] = statuses
-    } else {
-      console.log(`Item ${item.id} - Aucun statut, queryResult:`, queryResult)
     }
   })
   
