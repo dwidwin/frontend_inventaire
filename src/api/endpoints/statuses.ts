@@ -29,14 +29,7 @@ export const statusesApi = {
 
   // Définir le statut d'un item
   setItemStatus: (data: SetItemStatusDto): Promise<ItemStatus> => {
-    console.log('🟡 [API] setItemStatus appelé avec:', data)
-    return apiPost<ItemStatus>('/api/item-statuses', data).then(result => {
-      console.log('🟡 [API] setItemStatus réponse:', result)
-      return result
-    }).catch(error => {
-      console.error('🟡 [API] setItemStatus erreur:', error)
-      throw error
-    })
+    return apiPost<ItemStatus>('/api/item-statuses', data)
   },
 
   // Statuts actifs d'un item (tableau, un par groupe)
@@ -51,12 +44,6 @@ export const statusesApi = {
 
   // Fermer les statuts actifs d'un item pour un groupe spécifique
   closeActiveByGroup: (itemId: string, group: string): Promise<void> => {
-    console.log('🟡 [API] closeActiveByGroup appelé avec:', { itemId, group })
-    return apiDelete<void>(`/api/item-statuses/item/${itemId}/group/${group}`).then(() => {
-      console.log('🟡 [API] closeActiveByGroup succès')
-    }).catch(error => {
-      console.error('🟡 [API] closeActiveByGroup erreur:', error)
-      throw error
-    })
+    return apiDelete<void>(`/api/item-statuses/item/${itemId}/group/${group}`)
   },
 }
