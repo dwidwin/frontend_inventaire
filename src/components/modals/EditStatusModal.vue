@@ -130,6 +130,9 @@
             </p>
           </div>
 
+          <!-- Historique -->
+          <EntityHistory :entity="status" />
+
           <!-- Erreurs -->
           <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
             <p class="text-sm text-red-800">{{ error }}</p>
@@ -163,6 +166,7 @@
 import { ref, watch } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { useUpdateStatus } from '@/composables/useStatuses'
+import EntityHistory from '@/components/EntityHistory.vue'
 import type { Status, UpdateStatusDto } from '@/types'
 import { StatusGroup } from '@/types'
 

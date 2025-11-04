@@ -46,6 +46,14 @@
         />
       </template>
     </DataTable>
+
+    <!-- Modal d'édition -->
+    <EditUserModal
+      v-if="showEditUserModal && selectedUser"
+      :user="selectedUser"
+      @close="showEditUserModal = false"
+      @updated="handleUserUpdated"
+    />
   </div>
 </template>
 
@@ -56,6 +64,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useUsers } from '@/composables/useUsers'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import EditUserModal from '@/components/modals/EditUserModal.vue'
 import type { User } from '@/types'
 
 const authStore = useAuthStore()
@@ -65,6 +74,7 @@ const { data: users, isLoading } = useUsers()
 
 // État local
 const showCreateModal = ref(false)
+const showEditUserModal = ref(false)
 const selectedUser = ref<User | null>(null)
 
 // Colonnes du tableau
@@ -79,14 +89,18 @@ const columns = [
 // Actions
 const handleEdit = (user: User) => {
   selectedUser.value = user
-  // TODO: Ouvrir modal d'édition
-  console.log('Edit user:', user)
+  showEditUserModal.value = true
 }
 
 const handleDelete = (user: User) => {
   selectedUser.value = user
   // TODO: Ouvrir modal de confirmation
   console.log('Delete user:', user)
+}
+
+const handleUserUpdated = () => {
+  showEditUserModal.value = false
+  selectedUser.value = null
 }
 
 // Utilitaires

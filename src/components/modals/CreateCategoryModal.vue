@@ -89,6 +89,9 @@
               </div>
             </div>
           </div>
+
+          <!-- Historique (uniquement en mode édition) -->
+          <EntityHistory v-if="isEditMode" :entity="category" />
         </form>
       </div>
 
@@ -126,6 +129,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { useCategories, useCreateCategory, useUpdateCategory } from '@/composables/useCategories'
 import { getCategoryHierarchyPath, getCategoriesWithIndent } from '@/utils/categoryUtils'
+import EntityHistory from '@/components/EntityHistory.vue'
 import type { CreateCategoryDto, UpdateCategoryDto, Category } from '@/types'
 
 // Props

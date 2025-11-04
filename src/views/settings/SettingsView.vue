@@ -396,6 +396,14 @@
       @close="showDeleteStatusModal = false"
       @confirmed="handleStatusDeleted"
     />
+
+    <!-- Modals Utilisateurs -->
+    <EditUserModal
+      v-if="showEditUserModal && selectedUser"
+      :user="selectedUser"
+      @close="showEditUserModal = false"
+      @updated="handleUserUpdated"
+    />
   </div>
 </template>
 
@@ -421,6 +429,7 @@ import CreateStatusModal from '@/components/modals/CreateStatusModal.vue'
 import EditStatusModal from '@/components/modals/EditStatusModal.vue'
 import DeleteStatusModal from '@/components/modals/DeleteStatusModal.vue'
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
+import EditUserModal from '@/components/modals/EditUserModal.vue'
 import type { Category, MaterialModel, Transaction, User, Item, Status, StatusGroup } from '@/types'
 import { StatusGroup as StatusGroupEnum } from '@/types'
 import { formatDate } from '@/utils/formatDate'
@@ -475,6 +484,7 @@ const selectedItem = ref<Item | null>(null)
 
 // État local - Utilisateurs
 const showCreateUserModal = ref(false)
+const showEditUserModal = ref(false)
 const selectedUser = ref<User | null>(null)
 
 // État local - Statuts
@@ -652,14 +662,18 @@ const handleStatusDeleted = async () => {
 // Actions pour les utilisateurs
 const handleEditUser = (user: User) => {
   selectedUser.value = user
-  // TODO: Ouvrir modal d'édition
-  console.log('Edit user:', user)
+  showEditUserModal.value = true
 }
 
 const handleDeleteUser = (user: User) => {
   selectedUser.value = user
   // TODO: Ouvrir modal de confirmation
   console.log('Delete user:', user)
+}
+
+const handleUserUpdated = () => {
+  showEditUserModal.value = false
+  selectedUser.value = null
 }
 
 // Utilitaires

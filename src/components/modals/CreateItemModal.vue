@@ -294,6 +294,9 @@
               Vous pouvez prendre une photo du modèle (général) et/ou une photo spécifique de cet item.
             </p>
           </div>
+
+          <!-- Historique (uniquement en mode édition) -->
+          <EntityHistory v-if="isEditMode" :entity="item" />
         </form>
       </div>
 
@@ -371,6 +374,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import { getLocationsWithIndent } from '@/utils/locationUtils'
 import CameraCapture from '@/components/CameraCapture.vue'
+import EntityHistory from '@/components/EntityHistory.vue'
 import type { CreateMaterialModelDto, CreateItemDto, Item } from '@/types'
 
 const props = defineProps<{
