@@ -128,7 +128,7 @@ export interface UpdateItemDto {
 }
 
 export interface MoveItemDto {
-  locationId: string
+  locationId?: string | null
 }
 
 // Équipes

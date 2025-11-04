@@ -233,6 +233,18 @@
       @close="showStatusModal = false"
       @updated="handleStatusUpdated"
     />
+    <AssignItemModal
+      v-if="showAssignModal"
+      :item-id="itemId"
+      @close="showAssignModal = false"
+      @updated="handleAssignmentUpdated"
+    />
+    <MoveItemModal
+      v-if="showMoveModal"
+      :item-id="itemId"
+      @close="showMoveModal = false"
+      @updated="handleMoveUpdated"
+    />
   </div>
 </template>
 
@@ -249,6 +261,8 @@ import { formatDate, formatDateTime } from '@/utils/formatDate'
 import StatusBadge from '@/components/StatusBadge.vue'
 import EditItemModal from '@/components/modals/EditItemModal.vue'
 import SetItemStatusModal from '@/components/modals/SetItemStatusModal.vue'
+import AssignItemModal from '@/components/modals/AssignItemModal.vue'
+import MoveItemModal from '@/components/modals/MoveItemModal.vue'
 import { StatusGroup } from '@/types'
 
 const authStore = useAuthStore()
@@ -304,5 +318,20 @@ const handleItemUpdated = () => {
 
 const handleStatusUpdated = () => {
   showStatusModal.value = false
+  // Invalider les queries pour rafraîchir les données
+  queryClient.invalidateQueries({ queryKey: ['items', itemId] })
+}
+
+const handleAssignmentUpdated = () => {
+  showAssignModal.value = false
+  // Invalider les queries pour rafraîchir les données
+  queryClient.invalidateQueries({ queryKey: ['assignments', 'item', itemId] })
+  queryClient.invalidateQueries({ queryKey: ['items', itemId] })
+}
+
+const handleMoveUpdated = () => {
+  showMoveModal.value = false
+  // Invalider les queries pour rafraîchir les données
+  queryClient.invalidateQueries({ queryKey: ['items', itemId] })
 }
 </script>
