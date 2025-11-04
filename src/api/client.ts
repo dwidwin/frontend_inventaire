@@ -151,32 +151,10 @@ export const apiPost = async <T>(url: string, data?: any): Promise<T> => {
 
 // Fonction utilitaire pour les requêtes PATCH avec gestion d'erreur
 export const apiPatch = async <T>(url: string, data?: any): Promise<T> => {
-  console.log('apiPatch - Requête envoyée:', {
-    url,
-    method: 'PATCH',
-    data,
-    dataStringified: JSON.stringify(data),
-    dataType: typeof data,
-    isNull: data === null,
-    isUndefined: data === undefined
-  })
   try {
     const response = await apiClient.patch<T>(url, data)
-    console.log('apiPatch - Réponse reçue:', {
-      url,
-      status: response.status,
-      statusText: response.statusText,
-      data: response.data
-    })
     return response.data
   } catch (error) {
-    console.error('apiPatch - Erreur:', {
-      url,
-      error,
-      axiosError: error as AxiosError,
-      response: (error as AxiosError)?.response,
-      responseData: (error as AxiosError)?.response?.data
-    })
     throw extractApiError(error as AxiosError)
   }
 }
