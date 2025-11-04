@@ -24,59 +24,77 @@
       </div>
 
       <!-- Filtres -->
-      <div class="flex flex-wrap gap-3">
-        <!-- Filtre par catégorie -->
-        <select
-          v-model="selectedCategoryId"
-          class="form-select"
-        >
-          <option value="">Toutes les catégories</option>
-          <option
-            v-for="item in categoriesWithIndent"
-            :key="item.category.id"
-            :value="item.category.id"
+      <div class="space-y-4">
+        <!-- Filtres dropdowns -->
+        <div class="flex flex-wrap gap-3">
+          <!-- Filtre par catégorie -->
+          <select
+            v-model="selectedCategoryId"
+            class="form-select"
           >
-            {{ item.displayText }}
-          </option>
-        </select>
+            <option value="">Toutes les catégories</option>
+            <option
+              v-for="item in categoriesWithIndent"
+              :key="item.category.id"
+              :value="item.category.id"
+            >
+              {{ item.displayText }}
+            </option>
+          </select>
 
-        <!-- Filtre par emplacement -->
-        <select
-          v-model="selectedLocationId"
-          class="form-select"
-        >
-          <option value="">Tous les emplacements</option>
-          <option
-            v-for="item in locationsWithIndent"
-            :key="item.location.id"
-            :value="item.location.id"
+          <!-- Filtre par emplacement -->
+          <select
+            v-model="selectedLocationId"
+            class="form-select"
           >
-            {{ item.displayText }}
-          </option>
-        </select>
+            <option value="">Tous les emplacements</option>
+            <option
+              v-for="item in locationsWithIndent"
+              :key="item.location.id"
+              :value="item.location.id"
+            >
+              {{ item.displayText }}
+            </option>
+          </select>
 
-        <!-- Filtre par état -->
-        <select
-          v-model="selectedStatus"
-          class="form-select"
-        >
-          <option value="">Tous les états</option>
-          <option
-            v-for="status in statusesList"
-            :key="status.id"
-            :value="status.key"
+          <!-- Bouton réinitialiser -->
+          <button
+            @click="resetFilters"
+            class="btn btn-secondary btn-sm"
           >
-            {{ status.label }}
-          </option>
-        </select>
+            Réinitialiser
+          </button>
+        </div>
 
-        <!-- Bouton réinitialiser -->
-        <button
-          @click="resetFilters"
-          class="btn btn-secondary btn-sm"
-        >
-          Réinitialiser
-        </button>
+        <!-- Filtre par état avec badges -->
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-gray-700">Filtrer par état</label>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="status in statusesList"
+              :key="status.id"
+              @click="toggleStatus(status.key)"
+              :class="[
+                'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all',
+                'cursor-pointer hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2',
+                isStatusSelected(status.key)
+                  ? 'ring-2 ring-offset-2 ring-gray-900 shadow-md scale-105'
+                  : 'opacity-70 hover:opacity-100',
+                getStatusButtonClasses(status)
+              ]"
+              :style="getStatusButtonStyle(status)"
+            >
+              {{ status.label }}
+            </button>
+          </div>
+          <button
+            v-if="selectedStatuses.length > 0"
+            @click="clearStatusFilter"
+            class="text-xs text-gray-500 hover:text-gray-700 mt-1 w-fit"
+          >
+            Effacer {{ selectedStatuses.length }} sélectionné{{ selectedStatuses.length > 1 ? 's' : '' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -166,7 +184,7 @@ import { useQueries } from '@tanstack/vue-query'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import { getLocationsWithIndent } from '@/utils/locationUtils'
 import StatusBadge from '@/components/StatusBadge.vue'
-import type { Item } from '@/types'
+import type { Item, Status } from '@/types'
 
 // Queries
 const { data: items, isLoading } = useItems()
@@ -176,7 +194,7 @@ const { data: statuses } = useStatuses()
 
 // Liste des statuts avec valeurs par défaut
 const statusesList = computed(() => {
-  return (statuses.value || []).filter((status: any) => status.isActive !== false)
+  return (statuses.value || []).filter((status: Status) => status.isActive !== false)
 })
 
 // Récupérer les statuts actifs pour tous les items
@@ -224,14 +242,68 @@ const locationsWithIndent = computed(() => getLocationsWithIndent(locations.valu
 const searchQuery = ref('')
 const selectedCategoryId = ref('')
 const selectedLocationId = ref('')
-const selectedStatus = ref('')
+const selectedStatuses = ref<string[]>([])
+
+// Fonctions pour gérer la sélection multiple des statuts
+const toggleStatus = (statusKey: string) => {
+  const index = selectedStatuses.value.indexOf(statusKey)
+  if (index > -1) {
+    selectedStatuses.value.splice(index, 1)
+  } else {
+    selectedStatuses.value.push(statusKey)
+  }
+}
+
+const isStatusSelected = (statusKey: string) => {
+  return selectedStatuses.value.includes(statusKey)
+}
+
+const clearStatusFilter = () => {
+  selectedStatuses.value = []
+}
+
+// Fonction pour obtenir le style d'un badge de statut
+const getStatusButtonStyle = (status: Status) => {
+  if (status.color && status.color.startsWith('#')) {
+    // Calculer la couleur de texte (noir ou blanc selon la luminosité)
+    const hex = status.color.replace('#', '')
+    const r = parseInt(hex.slice(0, 2), 16)
+    const g = parseInt(hex.slice(2, 4), 16)
+    const b = parseInt(hex.slice(4, 6), 16)
+    const luminance = (r * 0.299 + g * 0.587 + b * 0.114) / 255
+    const textColor = luminance > 0.5 ? '#1f2937' : '#ffffff'
+    
+    return {
+      backgroundColor: status.color,
+      color: textColor,
+    }
+  }
+  return {}
+}
+
+// Fonction pour obtenir les classes CSS d'un badge de statut
+const getStatusButtonClasses = (status: Status) => {
+  if (status.color && status.color.startsWith('#')) {
+    return ''
+  }
+  
+  // Couleurs par défaut selon le groupe
+  const groupColors: Record<string, string> = {
+    commercial: 'bg-primary-100 text-primary-800',
+    audience: 'bg-success-100 text-success-800',
+    condition: 'bg-warning-100 text-warning-800',
+    lifecycle: 'bg-danger-100 text-danger-800',
+  }
+  
+  return groupColors[status.group] || 'bg-gray-100 text-gray-800'
+}
 
 // Fonction pour réinitialiser les filtres
 const resetFilters = () => {
   searchQuery.value = ''
   selectedCategoryId.value = ''
   selectedLocationId.value = ''
-  selectedStatus.value = ''
+  selectedStatuses.value = []
 }
 
 // Items filtrés
@@ -268,11 +340,25 @@ const filteredItems = computed(() => {
     )
   }
 
-  // Filtre par état
-  if (selectedStatus.value) {
-    result = result.filter((item: Item) => 
-      item.etat === selectedStatus.value
-    )
+  // Filtre par état (sélection multiple)
+  if (selectedStatuses.value.length > 0) {
+    result = result.filter((item: Item) => {
+      // Vérifier si l'item a au moins un des statuts sélectionnés
+      const itemStatuses = itemStatusesMap.value[item.id] || []
+      const itemStatusKeys = itemStatuses
+        .map((is: any) => is.status?.key)
+        .filter(Boolean)
+      
+      // Si l'item a des statuts actifs, vérifier si au moins un correspond
+      if (itemStatusKeys.length > 0) {
+        return selectedStatuses.value.some(selectedKey => 
+          itemStatusKeys.includes(selectedKey)
+        )
+      }
+      
+      // Fallback : vérifier l'ancien champ etat si pas de statuts actifs
+      return item.etat && selectedStatuses.value.includes(item.etat)
+    })
   }
 
   return result
