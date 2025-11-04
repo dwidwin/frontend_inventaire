@@ -70,7 +70,14 @@
 
       <template #cell-etat="{ item }">
         <div class="flex flex-wrap gap-1">
-          <StatusBadge :status="item.etat || 'Non défini'" />
+          <template v-if="itemStatusesMap[item.id]?.length">
+            <StatusBadge 
+              v-for="itemStatus in itemStatusesMap[item.id]" 
+              :key="itemStatus.status?.id || itemStatus.statusKey"
+              :status="itemStatus.status" 
+            />
+          </template>
+          <StatusBadge v-else status="Non défini" />
         </div>
       </template>
 
@@ -128,10 +135,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { PlusIcon, QrCodeIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 import { useItems } from '@/composables/useItems'
+import { useQueries } from '@tanstack/vue-query'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import CreateItemModal from '@/components/modals/CreateItemModal.vue'
@@ -144,6 +152,36 @@ const authStore = useAuthStore()
 
 // Queries
 const { data: items, isLoading } = useItems()
+
+// Récupérer les statuts actifs pour tous les items
+const statusQueries = useQueries({
+  queries: computed(() => {
+    if (!items.value) return []
+    return items.value.map((item) => ({
+      queryKey: ['item-statuses', 'active', item.id],
+      queryFn: async () => {
+        const { statusesApi } = await import('@/api/endpoints/statuses')
+        return statusesApi.getItemActiveStatus(item.id)
+      },
+      enabled: !!item.id,
+    }))
+  }),
+})
+
+// Mapper les statuts actifs par item ID
+const itemStatusesMap = computed(() => {
+  const map: Record<string, any[]> = {}
+  if (!items.value) return map
+  
+  items.value.forEach((item, index) => {
+    const statuses = statusQueries.value[index]?.data?.value || []
+    if (statuses.length > 0) {
+      map[item.id] = statuses
+    }
+  })
+  
+  return map
+})
 
 // État local
 const showCreateModal = ref(false)

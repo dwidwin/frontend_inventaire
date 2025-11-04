@@ -182,25 +182,39 @@
               </div>
             </div>
 
-            <!-- Statut -->
+            <!-- Statuts (un par groupe) -->
             <div>
-              <label for="statusKey" class="form-label">
-                Statut
+              <label class="form-label mb-2">
+                Statuts
               </label>
-              <select
-                id="statusKey"
-                v-model="form.item.statusKey"
-                class="form-select"
-              >
-                <option value="">Sélectionner un statut</option>
-                <option
-                  v-for="status in statuses"
-                  :key="status.id"
-                  :value="status.key"
+              <div class="space-y-3">
+                <div
+                  v-for="group in statusGroups"
+                  :key="group.value"
+                  class="border border-gray-200 rounded-lg p-3"
                 >
-                  {{ status.label }}
-                </option>
-              </select>
+                  <label :for="`status-${group.value}`" class="block text-sm font-medium text-gray-700 mb-1">
+                    {{ group.label }}
+                  </label>
+                  <select
+                    :id="`status-${group.value}`"
+                    v-model="form.item.statuses[group.value]"
+                    class="form-select"
+                  >
+                    <option value="">Aucun statut</option>
+                    <option
+                      v-for="status in getStatusesByGroup(group.value)"
+                      :key="status.id"
+                      :value="status.key"
+                    >
+                      {{ status.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <p class="mt-2 text-xs text-gray-500">
+                Vous pouvez sélectionner un statut pour chaque groupe. Un seul statut actif est autorisé par groupe.
+              </p>
             </div>
 
             <!-- Emplacement -->
@@ -375,7 +389,8 @@ import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import { getLocationsWithIndent } from '@/utils/locationUtils'
 import CameraCapture from '@/components/CameraCapture.vue'
 import EntityHistory from '@/components/EntityHistory.vue'
-import type { CreateMaterialModelDto, CreateItemDto, Item } from '@/types'
+import type { CreateMaterialModelDto, CreateItemDto, Item, StatusGroup } from '@/types'
+import { StatusGroup as StatusGroupEnum } from '@/types'
 
 const props = defineProps<{
   item?: Item
@@ -397,13 +412,29 @@ const categoriesWithIndent = computed(() => getCategoriesWithIndent(categories.v
 // Emplacements avec indentation hiérarchique
 const locationsWithIndent = computed(() => getLocationsWithIndent(locations.value))
 
-// Récupérer le statut actif de l'item en mode édition
+// Récupérer les statuts actifs de l'item en mode édition
 const itemId = computed(() => props.item?.id || '')
-const { data: activeItemStatus } = useQuery({
+const { data: activeItemStatuses } = useQuery({
   queryKey: computed(() => ['item-statuses', 'active', itemId.value]),
   queryFn: () => statusesApi.getItemActiveStatus(itemId.value),
   enabled: computed(() => isEditMode.value && !!itemId.value),
 })
+
+// Groupes de statuts
+const statusGroups = [
+  { value: StatusGroupEnum.COMMERCIAL, label: 'Commercial' },
+  { value: StatusGroupEnum.AUDIENCE, label: 'Audience' },
+  { value: StatusGroupEnum.CONDITION, label: 'Condition' },
+  { value: StatusGroupEnum.LIFECYCLE, label: 'Cycle de vie' },
+]
+
+// Fonction pour obtenir les statuts d'un groupe
+const getStatusesByGroup = (group: StatusGroup) => {
+  if (!statuses.value) return []
+  return statuses.value
+    .filter(s => s.group === group && s.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label))
+}
 
 // Mutations
 const createModelMutation = useCreateMaterialModel()
@@ -434,9 +465,15 @@ const form = reactive({
   } as CreateMaterialModelDto,
   item: {
     codeBarre: '',
-    statusKey: '',
+    statusKey: '', // Gardé pour compatibilité avec l'API legacy
+    statuses: {
+      [StatusGroupEnum.COMMERCIAL]: '',
+      [StatusGroupEnum.AUDIENCE]: '',
+      [StatusGroupEnum.CONDITION]: '',
+      [StatusGroupEnum.LIFECYCLE]: '',
+    } as Record<StatusGroup, string>,
     locationId: ''
-  } as Partial<CreateItemDto>,
+  } as Partial<CreateItemDto & { statuses: Record<StatusGroup, string> }>,
   photos: {
     model: null as { file: File; preview: string } | null,
     item: null as { file: File; preview: string } | null
@@ -452,8 +489,22 @@ const errors = reactive({
   item: {}
 })
 
+// Réinitialiser le formulaire en mode création
+watch(() => props.item, (newItem, oldItem) => {
+  if (!isEditMode.value && !newItem && oldItem) {
+    // Réinitialiser le formulaire en mode création
+    form.item.statuses = {
+      [StatusGroupEnum.COMMERCIAL]: '',
+      [StatusGroupEnum.AUDIENCE]: '',
+      [StatusGroupEnum.CONDITION]: '',
+      [StatusGroupEnum.LIFECYCLE]: '',
+    }
+    form.item.statusKey = ''
+  }
+})
+
 // Initialiser le formulaire en mode édition
-watch([() => props.item, activeItemStatus, () => statuses.value], ([item, status, statusList]) => {
+watch([() => props.item, activeItemStatuses, () => statuses.value], ([item, itemStatuses, statusList]) => {
   if (isEditMode.value && item) {
     // En mode édition, commencer à l'étape 2 (Item)
     currentStep.value = 2
@@ -462,19 +513,33 @@ watch([() => props.item, activeItemStatus, () => statuses.value], ([item, status
     form.item.codeBarre = item.codeBarre || ''
     form.item.locationId = item.locationId || ''
     
-    // Récupérer le statut actif si disponible
-    if (status?.status?.key) {
-      form.item.statusKey = status.status.key
+    // Initialiser tous les groupes à vide
+    form.item.statuses = {
+      [StatusGroupEnum.COMMERCIAL]: '',
+      [StatusGroupEnum.AUDIENCE]: '',
+      [StatusGroupEnum.CONDITION]: '',
+      [StatusGroupEnum.LIFECYCLE]: '',
+    }
+    
+    // Récupérer les statuts actifs par groupe
+    if (itemStatuses && itemStatuses.length > 0) {
+      itemStatuses.forEach(itemStatus => {
+        if (itemStatus.status?.group && itemStatus.status?.key) {
+          form.item.statuses[itemStatus.status.group] = itemStatus.status.key
+        }
+      })
+      // Garder le premier statut pour compatibilité avec statusKey legacy
+      const firstStatus = itemStatuses.find(is => is.status?.key)
+      if (firstStatus?.status?.key) {
+        form.item.statusKey = firstStatus.status.key
+      }
     } else if (item.etat && statusList) {
       // Fallback sur l'état de l'item, mais seulement s'il existe dans la liste des statuts
       const matchingStatus = statusList.find(s => s.key === item.etat)
       if (matchingStatus) {
+        form.item.statuses[matchingStatus.group] = item.etat
         form.item.statusKey = item.etat
-      } else {
-        form.item.statusKey = ''
       }
-    } else {
-      form.item.statusKey = ''
     }
   }
 }, { immediate: true })
@@ -555,21 +620,38 @@ const handleSubmit = async () => {
         await uploadsApi.uploadItemImage(props.item.id, form.photos.item.file)
       }
       
-      // 3. Mettre à jour le statut si modifié et valide
-      const currentStatusKey = activeItemStatus.value?.status?.key
-      const newStatusKey = form.item.statusKey?.trim() || ''
+      // 3. Mettre à jour les statuts pour chaque groupe
+      const currentStatusesByGroup: Record<StatusGroup, string> = {
+        [StatusGroupEnum.COMMERCIAL]: '',
+        [StatusGroupEnum.AUDIENCE]: '',
+        [StatusGroupEnum.CONDITION]: '',
+        [StatusGroupEnum.LIFECYCLE]: '',
+      }
       
-      // Vérifier que le statusKey est valide (existe dans la liste des statuts)
-      const isValidStatusKey = newStatusKey && statuses.value?.some(s => s.key === newStatusKey)
-      
-      // Mettre à jour le statut seulement si :
-      // - Le nouveau statut est valide ET différent du statut actuel
-      // - OU si on passe d'un statut à aucun statut (mais on ne peut pas faire ça avec l'API actuelle)
-      if (isValidStatusKey && newStatusKey !== currentStatusKey) {
-        await setItemStatusMutation.mutateAsync({
-          itemId: props.item.id,
-          statusKey: newStatusKey
+      // Récupérer les statuts actuels
+      if (activeItemStatuses.value) {
+        activeItemStatuses.value.forEach(itemStatus => {
+          if (itemStatus.status?.group) {
+            currentStatusesByGroup[itemStatus.status.group] = itemStatus.status.key || ''
+          }
         })
+      }
+      
+      // Définir ou mettre à jour chaque statut sélectionné
+      for (const group of statusGroups) {
+        const newStatusKey = form.item.statuses[group.value]?.trim() || ''
+        const currentStatusKey = currentStatusesByGroup[group.value]
+        
+        // Vérifier que le statusKey est valide (existe dans la liste des statuts)
+        const isValidStatusKey = newStatusKey && statuses.value?.some(s => s.key === newStatusKey)
+        
+        if (isValidStatusKey && newStatusKey !== currentStatusKey) {
+          // Nouveau statut différent de l'actuel, le définir
+          await setItemStatusMutation.mutateAsync({
+            itemId: props.item.id,
+            statusKey: newStatusKey
+          })
+        }
       }
       
       // Succès
@@ -588,11 +670,13 @@ const handleSubmit = async () => {
       }
       
       // 3. Créer l'item
+      // Déterminer le premier statut pour le champ legacy etat
+      const firstStatusKey = Object.values(form.item.statuses).find(key => key.trim()) || ''
       const item = await createItemMutation.mutateAsync({
         modelId: model.id,
         locationId: form.item.locationId || undefined,
         codeBarre: form.item.codeBarre || undefined,
-        etat: form.item.statusKey || undefined
+        etat: firstStatusKey || undefined
       })
       
       // 4. Uploader la photo de l'item si présente
@@ -600,12 +684,15 @@ const handleSubmit = async () => {
         await uploadsApi.uploadItemImage(item.id, form.photos.item.file)
       }
       
-      // 5. Définir le statut si sélectionné
-      if (form.item.statusKey) {
-        await setItemStatusMutation.mutateAsync({
-          itemId: item.id,
-          statusKey: form.item.statusKey
-        })
+      // 5. Définir tous les statuts sélectionnés
+      for (const group of statusGroups) {
+        const statusKey = form.item.statuses[group.value]?.trim()
+        if (statusKey && statuses.value?.some(s => s.key === statusKey)) {
+          await setItemStatusMutation.mutateAsync({
+            itemId: item.id,
+            statusKey: statusKey
+          })
+        }
       }
       
       // Succès
