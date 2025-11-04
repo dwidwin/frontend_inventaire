@@ -103,13 +103,20 @@
                   </div>
                 </div>
                 <div class="ml-3 flex-1">
-                  <p class="text-sm text-gray-900">
-                    <span class="font-medium">{{ s.setBy?.username || 'Système' }}</span>
-                    a défini le statut sur
-                    <span class="font-medium">{{ s.statusKey }}</span>
-                  </p>
+                  <div class="flex items-center space-x-2 mb-1">
+                    <span class="text-sm text-gray-900">
+                      <span class="font-medium">{{ s.setBy?.username || 'Système' }}</span>
+                      a défini le statut
+                    </span>
+                    <StatusBadge v-if="s.status" :status="s.status" />
+                    <StatusBadge v-else :status="s.statusKey || 'Inconnu'" />
+                  </div>
                   <p class="text-xs text-gray-500">
                     {{ formatDateTime(s.startAt) }}
+                    <span v-if="s.endAt"> - {{ formatDateTime(s.endAt) }}</span>
+                  </p>
+                  <p v-if="s.notes" class="text-xs text-gray-600 italic mt-1">
+                    {{ s.notes }}
                   </p>
                 </div>
               </div>
@@ -140,16 +147,33 @@
           </div>
         </div>
 
-        <!-- Statut actuel -->
+        <!-- Statuts actifs -->
         <div class="card">
           <div class="card-header">
-            <h3 class="text-lg font-medium text-gray-900">Statut actuel</h3>
+            <h3 class="text-lg font-medium text-gray-900">Statuts actifs</h3>
           </div>
           <div class="card-body">
-            <div v-if="currentStatus" class="text-sm">
-              <StatusBadge :status="currentStatus.statusKey" />
-              <div class="mt-2 text-gray-500">
-                Depuis le {{ formatDate(currentStatus.startAt) }}
+            <div v-if="activeStatusesByGroup && Object.keys(activeStatusesByGroup).some(g => activeStatusesByGroup[g as StatusGroup])" class="space-y-3">
+              <div
+                v-for="(itemStatus, group) in activeStatusesByGroup"
+                :key="group"
+                v-if="itemStatus && itemStatus.status"
+                class="p-3 bg-gray-50 rounded-lg"
+              >
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-medium text-gray-500 uppercase">
+                    {{ getGroupLabel(group as StatusGroup) }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <StatusBadge :status="itemStatus.status" />
+                  <span class="text-xs text-gray-500">
+                    {{ formatDate(itemStatus.startAt) }}
+                  </span>
+                </div>
+                <div v-if="itemStatus.notes" class="mt-2 text-xs text-gray-600 italic">
+                  {{ itemStatus.notes }}
+                </div>
               </div>
             </div>
             <div v-else class="text-sm text-gray-500">
@@ -186,6 +210,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Modals -->
+    <SetItemStatusModal
+      v-if="showStatusModal"
+      :item-id="itemId"
+      @close="showStatusModal = false"
+      @updated="handleStatusUpdated"
+    />
   </div>
 </template>
 
@@ -197,8 +229,11 @@ import { useItem } from '@/composables/useItems'
 import { useQuery } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
 import { statusesApi } from '@/api/endpoints/statuses'
+import { useItemActiveStatusByGroup, useItemStatusHistory } from '@/composables/useStatuses'
 import { formatDate, formatDateTime } from '@/utils/formatDate'
 import StatusBadge from '@/components/StatusBadge.vue'
+import SetItemStatusModal from '@/components/modals/SetItemStatusModal.vue'
+import { StatusGroup } from '@/types'
 
 const authStore = useAuthStore()
 
@@ -209,11 +244,7 @@ const itemId = route.params.id as string
 const { data: item, isLoading: isLoadingItem } = useItem(itemId)
 
 // Historique des statuts de l'item
-const { data: statusHistory, isLoading: isLoadingStatusHistory } = useQuery({
-  queryKey: ['item-statuses', 'history', itemId],
-  queryFn: () => statusesApi.getItemStatusHistory(itemId),
-  enabled: !!itemId,
-})
+const { data: statusHistory, isLoading: isLoadingStatusHistory } = useItemStatusHistory(itemId)
 
 // Affectation actuelle
 const { data: assignments } = useQuery({
@@ -222,12 +253,8 @@ const { data: assignments } = useQuery({
   enabled: !!itemId,
 })
 
-// Statut actuel
-const { data: currentStatus } = useQuery({
-  queryKey: ['item-statuses', 'active', itemId],
-  queryFn: () => statusesApi.getItemActiveStatus(itemId),
-  enabled: !!itemId,
-})
+// Statuts actifs groupés par groupe
+const activeStatusesByGroup = useItemActiveStatusByGroup(itemId)
 
 // État local
 const showEditModal = ref(false)
@@ -240,5 +267,19 @@ const currentAssignment = computed(() => {
   return assignments.value?.find(a => !a.endAt)
 })
 
-// Les utilitaires de formatage sont maintenant importés depuis @/utils/formatDate
+// Fonction pour obtenir le label du groupe
+const getGroupLabel = (group: StatusGroup): string => {
+  const labels: Record<StatusGroup, string> = {
+    [StatusGroup.COMMERCIAL]: 'Commercial',
+    [StatusGroup.AUDIENCE]: 'Audience',
+    [StatusGroup.CONDITION]: 'Condition',
+    [StatusGroup.LIFECYCLE]: 'Cycle de vie',
+  }
+  return labels[group] || group
+}
+
+// Handlers
+const handleStatusUpdated = () => {
+  showStatusModal.value = false
+}
 </script>

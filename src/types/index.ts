@@ -171,31 +171,48 @@ export interface CloseAssignmentDto {
 }
 
 // Statuts
+export enum StatusGroup {
+  COMMERCIAL = 'commercial',
+  AUDIENCE = 'audience',
+  CONDITION = 'condition',
+  LIFECYCLE = 'lifecycle',
+}
+
 export interface Status extends BaseEntity {
   key: string
   label: string
+  group: StatusGroup
   color?: string
+  isActive: boolean
+  sortOrder: number
 }
 
 export interface CreateStatusDto {
   key: string
   label: string
+  group: StatusGroup
   color?: string
+  isActive?: boolean
+  sortOrder?: number
 }
 
 export interface UpdateStatusDto {
   key?: string
   label?: string
+  group?: StatusGroup
   color?: string
+  isActive?: boolean
+  sortOrder?: number
 }
 
 export interface ItemStatus extends BaseEntity {
   itemId: string
   item?: Item
-  statusKey: string
+  statusId?: string
+  statusKey?: string
   status?: Status
   startAt: string
-  endAt?: string
+  endAt?: string | null
   notes?: string
   setById?: string
   setBy?: User
@@ -203,8 +220,8 @@ export interface ItemStatus extends BaseEntity {
 
 export interface SetItemStatusDto {
   itemId: string
-  statusKey: string
-  startAt?: string
+  statusId?: string
+  statusKey?: string
   notes?: string
 }
 

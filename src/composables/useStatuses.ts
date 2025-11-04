@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { computed } from 'vue'
 import { statusesApi } from '@/api/endpoints'
-import type { Status, CreateStatusDto, UpdateStatusDto, ItemStatus, SetItemStatusDto } from '@/types'
+import type { Status, CreateStatusDto, UpdateStatusDto, ItemStatus, SetItemStatusDto, StatusGroup } from '@/types'
+import { StatusGroup as StatusGroupEnum } from '@/types'
 
 export const useStatuses = () => {
   return useQuery({
@@ -57,8 +59,10 @@ export const useSetItemStatus = () => {
 
   return useMutation({
     mutationFn: (data: SetItemStatusDto) => statusesApi.setItemStatus(data),
-    onSuccess: (_, { itemId }) => {
-      queryClient.invalidateQueries({ queryKey: ['item-statuses', 'item', itemId] })
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['item-statuses', 'active', variables.itemId] })
+      queryClient.invalidateQueries({ queryKey: ['item-statuses', 'history', variables.itemId] })
+      queryClient.invalidateQueries({ queryKey: ['item-statuses'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
     },
   })
@@ -78,4 +82,40 @@ export const useItemStatusHistory = (itemId: string) => {
     queryFn: () => statusesApi.getItemStatusHistory(itemId),
     enabled: !!itemId,
   })
+}
+
+/**
+ * Grouper les statuts actifs par groupe
+ */
+export const useItemActiveStatusByGroup = (itemId: string) => {
+  const { data: activeStatuses } = useItemActiveStatus(itemId)
+  
+  return computed(() => {
+    const grouped: Record<StatusGroup, ItemStatus | null> = {
+      [StatusGroupEnum.COMMERCIAL]: null,
+      [StatusGroupEnum.AUDIENCE]: null,
+      [StatusGroupEnum.CONDITION]: null,
+      [StatusGroupEnum.LIFECYCLE]: null,
+    }
+    
+    if (activeStatuses.value && activeStatuses.value.length > 0) {
+      activeStatuses.value.forEach(itemStatus => {
+        const group = itemStatus.status?.group
+        if (group) {
+          grouped[group] = itemStatus
+        }
+      })
+    }
+    
+    return grouped
+  })
+}
+
+/**
+ * Obtenir le statut actif pour un groupe spécifique
+ */
+export const useItemActiveStatusForGroup = (itemId: string, group: StatusGroup) => {
+  const grouped = useItemActiveStatusByGroup(itemId)
+  
+  return computed(() => grouped.value[group] || null)
 }

@@ -32,9 +32,9 @@ export const statusesApi = {
     return apiPost<ItemStatus>('/api/item-statuses', data)
   },
 
-  // Statut actif d'un item
-  getItemActiveStatus: (itemId: string): Promise<ItemStatus | null> => {
-    return apiGet<ItemStatus | null>(`/api/item-statuses/item/${itemId}/active`)
+  // Statuts actifs d'un item (tableau, un par groupe)
+  getItemActiveStatus: (itemId: string): Promise<ItemStatus[]> => {
+    return apiGet<ItemStatus[]>(`/api/item-statuses/item/${itemId}/active`)
   },
 
   // Historique des statuts d'un item

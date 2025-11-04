@@ -69,7 +69,9 @@
       </template>
 
       <template #cell-etat="{ item }">
-        <StatusBadge :status="item.etat || 'Non défini'" />
+        <div class="flex flex-wrap gap-1">
+          <StatusBadge :status="item.etat || 'Non défini'" />
+        </div>
       </template>
 
       <template #actions="{ item }">
