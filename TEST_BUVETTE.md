@@ -134,3 +134,4 @@ Le serveur démarre généralement sur **http://localhost:3000** (ou le port ind
 4. Ajouter des statistiques (revenus, produits les plus vendus, etc.)
 
 
+
