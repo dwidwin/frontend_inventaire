@@ -62,11 +62,11 @@
         >
           <option value="">Tous les états</option>
           <option
-            v-for="status in statuses"
+            v-for="status in statusesList"
             :key="status.id"
             :value="status.key"
           >
-            {{ status.name }}
+            {{ status.label }}
           </option>
         </select>
 
@@ -173,6 +173,11 @@ const { data: items, isLoading } = useItems()
 const { data: categories } = useCategories()
 const { data: locations } = useLocations()
 const { data: statuses } = useStatuses()
+
+// Liste des statuts avec valeurs par défaut
+const statusesList = computed(() => {
+  return (statuses.value || []).filter((status: any) => status.isActive !== false)
+})
 
 // Récupérer les statuts actifs pour tous les items
 const statusQueries = useQueries({
