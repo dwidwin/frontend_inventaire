@@ -29,6 +29,12 @@ export const itemsApi = {
 
   // Déplacer un item
   move: (id: string, data: MoveItemDto): Promise<Item> => {
+    console.log('itemsApi.move - Appelé:', {
+      id,
+      data,
+      url: `/api/items/${id}/move`,
+      dataStringified: JSON.stringify(data)
+    })
     return apiPatch<Item>(`/api/items/${id}/move`, data)
   },
 

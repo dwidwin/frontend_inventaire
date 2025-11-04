@@ -76,11 +76,21 @@ export const useMoveItem = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: MoveItemDto }) =>
-      itemsApi.move(id, data),
-    onSuccess: (_, { id }) => {
+    mutationFn: ({ id, data }: { id: string; data: MoveItemDto }) => {
+      console.log('useMoveItem - mutationFn appelé:', { id, data })
+      return itemsApi.move(id, data)
+    },
+    onSuccess: (result, variables) => {
+      console.log('useMoveItem - onSuccess:', {
+        result,
+        variables,
+        resultLocation: result?.location
+      })
       queryClient.invalidateQueries({ queryKey: ['items'] })
-      queryClient.invalidateQueries({ queryKey: ['items', id] })
+      queryClient.invalidateQueries({ queryKey: ['items', variables.id] })
+    },
+    onError: (error) => {
+      console.error('useMoveItem - onError:', error)
     },
   })
 }

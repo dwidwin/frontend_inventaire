@@ -124,14 +124,26 @@ const isSubmitting = ref(false)
 
 // Initialiser avec l'emplacement actuel de l'item
 watch(item, (newItem) => {
+  console.log('MoveItemModal - Item chargé:', {
+    itemId: newItem?.id,
+    currentLocation: newItem?.location,
+    currentLocationId: newItem?.location?.id
+  })
   if (newItem?.location?.id && form.value.locationId === '') {
     form.value.locationId = newItem.location.id
+    console.log('MoveItemModal - Formulaire initialisé avec locationId:', form.value.locationId)
   }
 }, { immediate: true })
 
 // Locations avec indentation pour le select
 const locationsWithIndent = computed(() => {
-  return getLocationsWithIndent(locations.value)
+  const result = getLocationsWithIndent(locations.value)
+  console.log('MoveItemModal - Locations disponibles:', {
+    total: locations.value?.length || 0,
+    withIndent: result.length,
+    locations: result.map(l => ({ id: l.location.id, name: l.location.name, displayText: l.displayText }))
+  })
+  return result
 })
 
 // Fonction pour obtenir le chemin complet d'une location
@@ -144,38 +156,67 @@ const handleClose = () => {
 }
 
 const handleSubmit = async () => {
+  console.log('MoveItemModal - handleSubmit appelé')
+  console.log('MoveItemModal - État du formulaire:', {
+    locationId: form.value.locationId,
+    type: typeof form.value.locationId,
+    isEmpty: form.value.locationId === '',
+    isNull: form.value.locationId === null,
+    isUndefined: form.value.locationId === undefined
+  })
+  console.log('MoveItemModal - Item actuel:', {
+    itemId: item.value?.id,
+    currentLocation: item.value?.location,
+    currentLocationId: item.value?.location?.id
+  })
+  
   error.value = ''
   isSubmitting.value = true
 
   try {
-    console.log('MoveItemModal - Valeur du formulaire:', form.value.locationId)
-    
     // Construire l'objet data selon la sélection
-    // Le backend avec @IsOptional() et @IsUUID() peut avoir des problèmes avec null
-    // Donc on va toujours envoyer locationId, même si c'est pour retirer
     const data: { locationId?: string | null } = {}
     
     if (form.value.locationId === '') {
       // Retirer l'emplacement : envoyer null explicitement
-      // Note: Le validateur peut rejeter null, mais c'est la seule façon de retirer
       data.locationId = null
+      console.log('MoveItemModal - Action: RETIRER l\'emplacement (null)')
     } else if (form.value.locationId) {
       // Définir un nouvel emplacement : envoyer l'UUID
       data.locationId = form.value.locationId
+      console.log('MoveItemModal - Action: DÉFINIR l\'emplacement:', data.locationId)
+    } else {
+      console.log('MoveItemModal - Action: NE RIEN CHANGER (undefined)')
     }
-    // Si locationId n'est pas défini, on n'envoie rien (undefined) pour ne rien changer
     
-    console.log('MoveItemModal - Données envoyées:', { itemId: props.itemId, data })
+    console.log('MoveItemModal - Données finales à envoyer:', {
+      itemId: props.itemId,
+      data,
+      dataStringified: JSON.stringify(data)
+    })
     
-    await moveItemMutation.mutateAsync({
+    const result = await moveItemMutation.mutateAsync({
       id: props.itemId,
       data,
+    })
+
+    console.log('MoveItemModal - Succès! Réponse reçue:', {
+      itemId: result.id,
+      newLocation: result.location,
+      newLocationId: result.location?.id
     })
 
     emit('updated')
     handleClose()
   } catch (err: any) {
-    console.error('MoveItemModal - Erreur:', err)
+    console.error('MoveItemModal - ERREUR complète:', {
+      message: err?.message,
+      response: err?.response,
+      responseData: err?.response?.data,
+      responseStatus: err?.response?.status,
+      responseStatusText: err?.response?.statusText,
+      stack: err?.stack
+    })
     error.value = err?.response?.data?.message || err?.message || 'Une erreur est survenue'
   } finally {
     isSubmitting.value = false
