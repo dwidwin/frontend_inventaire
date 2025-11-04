@@ -45,7 +45,7 @@
             v-if="item.model?.mainImageUrl"
             :src="item.model.mainImageUrl"
             :alt="item.model.name"
-            class="h-10 w-10 rounded-lg object-cover mr-3"
+            class="h-10 w-10 rounded-lg object-contain mr-3"
           />
           <div>
             <div class="text-sm font-medium text-gray-900">{{ item.model?.name }}</div>

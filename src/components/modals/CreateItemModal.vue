@@ -247,7 +247,7 @@
                 <img
                   :src="form.photos.model?.preview || (item?.model?.mainImageUrl as string)"
                   alt="Photo du modèle"
-                  class="w-full h-48 object-cover rounded-lg border border-gray-300"
+                  class="w-full h-48 object-contain rounded-lg border border-gray-300"
                 />
                 <button
                   v-if="form.photos.model"
@@ -267,7 +267,7 @@
                 <img
                   :src="form.photos.item?.preview || (item?.photoUrl as string)"
                   alt="Photo de l'item"
-                  class="w-full h-48 object-cover rounded-lg border border-gray-300"
+                  class="w-full h-48 object-contain rounded-lg border border-gray-300"
                 />
                 <button
                   v-if="form.photos.item"

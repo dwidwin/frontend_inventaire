@@ -37,7 +37,7 @@
             <img
               :src="item.photoUrl"
               :alt="item.model?.name"
-              class="w-full h-64 object-cover rounded-lg"
+              class="w-full h-64 object-contain rounded-lg"
             />
           </div>
         </div>

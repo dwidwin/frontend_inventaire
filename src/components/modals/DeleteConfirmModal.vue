@@ -20,7 +20,7 @@
               v-if="item.model?.mainImageUrl"
               :src="item.model.mainImageUrl"
               :alt="item.model.name"
-              class="h-12 w-12 rounded-lg object-cover"
+              class="h-12 w-12 rounded-lg object-contain"
             />
             <div class="flex-1">
               <div class="text-sm font-medium text-gray-900">{{ item.model?.name }}</div>

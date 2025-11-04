@@ -113,7 +113,7 @@
             v-if="item.model?.mainImageUrl || item.photoUrl"
             :src="item.photoUrl || item.model?.mainImageUrl"
             :alt="item.model?.name || 'Matériel'"
-            class="w-full h-full object-cover"
+            class="w-full h-full object-contain"
           />
           <div v-else class="w-full h-full flex items-center justify-center">
             <CubeIcon class="h-16 w-16 text-gray-400" />
