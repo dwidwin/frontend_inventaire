@@ -617,23 +617,19 @@ const handleSubmit = async () => {
         await uploadsApi.uploadItemImage(props.item.id, form.photos.item.file)
       }
       
-      // 3. Récupérer les statuts actifs actuels
-      const currentStatusKeys = activeItemStatuses.value
-        ? activeItemStatuses.value
-            .filter(is => is.status?.key)
-            .map(is => is.status!.key)
-        : []
-      
-      // 4. Définir ou mettre à jour chaque statut sélectionné
+      // 3. Définir tous les statuts sélectionnés
+      // Le backend ferme automatiquement les anciens statuts du même groupe
       const selectedKeys = form.item.selectedStatusKeys.filter(key => key.trim())
       
-      // Définir les nouveaux statuts sélectionnés
+      // Définir tous les statuts sélectionnés (même s'ils sont déjà actifs)
+      // Cela garantit que tous les changements sont pris en compte, notamment
+      // quand on change un statut dans un groupe (ex: de "Neuf" à "Usé")
       for (const statusKey of selectedKeys) {
         // Vérifier que le statusKey est valide (existe dans la liste des statuts)
         const isValidStatusKey = statusKey && statuses.value?.some(s => s.key === statusKey)
         
-        if (isValidStatusKey && !currentStatusKeys.includes(statusKey)) {
-          // Nouveau statut non présent actuellement, le définir
+        if (isValidStatusKey) {
+          // Définir le statut (le backend fermera automatiquement les anciens du même groupe)
           await setItemStatusMutation.mutateAsync({
             itemId: props.item.id,
             statusKey: statusKey
