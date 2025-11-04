@@ -19,7 +19,14 @@ export const itemsApi = {
 
   // Modifier un item
   update: (id: string, data: UpdateItemDto): Promise<Item> => {
-    return apiPatch<Item>(`/api/items/${id}`, data)
+    console.log('🟡 [API] updateItem appelé avec:', { id, data })
+    return apiPatch<Item>(`/api/items/${id}`, data).then(result => {
+      console.log('🟡 [API] updateItem réponse:', result)
+      return result
+    }).catch(error => {
+      console.error('🟡 [API] updateItem erreur:', error)
+      throw error
+    })
   },
 
   // Supprimer un item

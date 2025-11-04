@@ -29,7 +29,14 @@ export const statusesApi = {
 
   // Définir le statut d'un item
   setItemStatus: (data: SetItemStatusDto): Promise<ItemStatus> => {
-    return apiPost<ItemStatus>('/api/item-statuses', data)
+    console.log('🟡 [API] setItemStatus appelé avec:', data)
+    return apiPost<ItemStatus>('/api/item-statuses', data).then(result => {
+      console.log('🟡 [API] setItemStatus réponse:', result)
+      return result
+    }).catch(error => {
+      console.error('🟡 [API] setItemStatus erreur:', error)
+      throw error
+    })
   },
 
   // Statuts actifs d'un item (tableau, un par groupe)

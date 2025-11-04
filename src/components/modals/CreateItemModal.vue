@@ -620,7 +620,13 @@ const handleSubmit = async () => {
       // 3. Gérer les statuts sélectionnés
       // Le système ne permet qu'un seul statut actif par groupe
       // On doit comparer les statuts actifs par groupe avec les statuts sélectionnés
+      console.log('🔵 [EDIT ITEM] Début de la gestion des statuts')
+      console.log('🔵 [EDIT ITEM] Item ID:', props.item.id)
+      console.log('🔵 [EDIT ITEM] Statuts actifs AVANT modification:', activeItemStatuses.value)
+      console.log('🔵 [EDIT ITEM] selectedStatusKeys du formulaire:', form.item.selectedStatusKeys)
+      
       const selectedKeys = form.item.selectedStatusKeys.filter(key => key.trim())
+      console.log('🔵 [EDIT ITEM] selectedKeys filtrés:', selectedKeys)
       
       // Créer un map des statuts actifs par groupe
       const activeStatusByGroup = new Map<StatusGroup, string>()
@@ -628,30 +634,60 @@ const handleSubmit = async () => {
         activeItemStatuses.value.forEach(itemStatus => {
           if (itemStatus.status?.group && itemStatus.status?.key) {
             activeStatusByGroup.set(itemStatus.status.group, itemStatus.status.key)
+            console.log(`🔵 [EDIT ITEM] Statut actif trouvé - Groupe: ${itemStatus.status.group}, Key: ${itemStatus.status.key}`)
           }
         })
       }
+      console.log('🔵 [EDIT ITEM] Map des statuts actifs par groupe:', Array.from(activeStatusByGroup.entries()))
       
       // Créer un map des statuts sélectionnés par groupe
       const selectedStatusByGroup = new Map<StatusGroup, string>()
       for (const statusKey of selectedKeys) {
         const status = statuses.value?.find(s => s.key === statusKey)
+        console.log(`🔵 [EDIT ITEM] Recherche statut pour key "${statusKey}":`, status)
         if (status && status.group) {
           // Si un groupe a déjà un statut sélectionné, on garde le dernier (ou on pourrait gérer différemment)
           selectedStatusByGroup.set(status.group, statusKey)
+          console.log(`🔵 [EDIT ITEM] Statut sélectionné ajouté - Groupe: ${status.group}, Key: ${statusKey}`)
+        } else {
+          console.warn(`🔵 [EDIT ITEM] ⚠️ Statut introuvable pour key: ${statusKey}`)
+        }
+      }
+      console.log('🔵 [EDIT ITEM] Map des statuts sélectionnés par groupe:', Array.from(selectedStatusByGroup.entries()))
+      
+      // Définir uniquement les statuts qui ont changé ou qui sont nouveaux
+      console.log('🔵 [EDIT ITEM] Comparaison des statuts par groupe:')
+      for (const [group, statusKey] of selectedStatusByGroup.entries()) {
+        const currentStatusKey = activeStatusByGroup.get(group)
+        const hasChanged = currentStatusKey !== statusKey
+        
+        console.log(`🔵 [EDIT ITEM] Groupe ${group}:`)
+        console.log(`  - Actif actuel: ${currentStatusKey || '(aucun)'}`)
+        console.log(`  - Sélectionné: ${statusKey}`)
+        console.log(`  - A changé: ${hasChanged}`)
+        
+        // Si le statut a changé ou n'existe pas encore, le définir
+        if (hasChanged) {
+          console.log(`🔵 [EDIT ITEM] ✅ Définition du statut ${statusKey} pour le groupe ${group}`)
+          try {
+            const result = await setItemStatusMutation.mutateAsync({
+              itemId: props.item.id,
+              statusKey: statusKey
+            })
+            console.log(`🔵 [EDIT ITEM] ✅ Statut défini avec succès:`, result)
+          } catch (error) {
+            console.error(`🔵 [EDIT ITEM] ❌ Erreur lors de la définition du statut:`, error)
+            throw error
+          }
+        } else {
+          console.log(`🔵 [EDIT ITEM] ⏭️ Statut ${statusKey} déjà actif, pas de changement nécessaire`)
         }
       }
       
-      // Définir uniquement les statuts qui ont changé ou qui sont nouveaux
-      for (const [group, statusKey] of selectedStatusByGroup.entries()) {
-        const currentStatusKey = activeStatusByGroup.get(group)
-        
-        // Si le statut a changé ou n'existe pas encore, le définir
-        if (currentStatusKey !== statusKey) {
-          await setItemStatusMutation.mutateAsync({
-            itemId: props.item.id,
-            statusKey: statusKey
-          })
+      // Vérifier les groupes qui ont un statut actif mais plus de sélection
+      for (const [group, currentStatusKey] of activeStatusByGroup.entries()) {
+        if (!selectedStatusByGroup.has(group)) {
+          console.log(`🔵 [EDIT ITEM] ⚠️ Groupe ${group} a un statut actif (${currentStatusKey}) mais n'est plus sélectionné`)
         }
       }
       
@@ -663,6 +699,23 @@ const handleSubmit = async () => {
       // Mettre à jour statusKey pour compatibilité legacy (premier statut sélectionné)
       if (selectedKeys.length > 0) {
         form.item.statusKey = selectedKeys[0]
+      }
+      
+      // Attendre un peu pour que les queries soient invalidées et rafraîchies
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Récupérer les statuts actifs après modification pour vérification
+      try {
+        const updatedStatuses = await statusesApi.getItemActiveStatus(props.item.id)
+        console.log('🔵 [EDIT ITEM] Statuts actifs APRÈS modification:', updatedStatuses)
+        console.log('🔵 [EDIT ITEM] Résumé des statuts par groupe APRÈS:')
+        updatedStatuses.forEach(itemStatus => {
+          if (itemStatus.status) {
+            console.log(`  - ${itemStatus.status.group}: ${itemStatus.status.key} (${itemStatus.status.label})`)
+          }
+        })
+      } catch (error) {
+        console.error('🔵 [EDIT ITEM] Erreur lors de la récupération des statuts après modification:', error)
       }
       
       // Succès
