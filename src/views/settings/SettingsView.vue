@@ -283,10 +283,6 @@
           <template #cell-createdAt="{ item }">
             <span class="text-sm text-gray-900">{{ formatDate(item.createdAt) }}</span>
           </template>
-
-          <template #cell-createdBy="{ item }">
-            <span class="text-sm text-gray-500">-</span>
-          </template>
         </DataTable>
       </div>
 
@@ -531,7 +527,6 @@ const statusColumns = [
   { key: 'sortOrder', label: 'Ordre', sortable: true },
   { key: 'isActive', label: 'Statut', sortable: true },
   { key: 'createdAt', label: 'Créé le', sortable: true },
-  { key: 'createdBy', label: 'Créé par', sortable: false },
 ]
 
 // Colonnes pour les utilisateurs
