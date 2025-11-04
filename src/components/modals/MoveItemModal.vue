@@ -50,10 +50,10 @@
               <option :value="''">Aucun emplacement (retirer)</option>
               <option
                 v-for="location in locationsWithIndent"
-                :key="location.id"
-                :value="location.id"
+                :key="location.location.id"
+                :value="location.location.id"
               >
-                {{ location.indent }}{{ location.name }}
+                {{ location.displayText }}
               </option>
             </select>
             <p class="mt-2 text-sm text-gray-500">
