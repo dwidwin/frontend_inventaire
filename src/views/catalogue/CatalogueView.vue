@@ -118,9 +118,16 @@
           <div v-else class="w-full h-full flex items-center justify-center">
             <CubeIcon class="h-16 w-16 text-gray-400" />
           </div>
-          <!-- Badge état -->
-          <div class="absolute top-2 right-2">
-            <StatusBadge :status="item.etat || 'Non défini'" />
+          <!-- Badges statuts -->
+          <div class="absolute top-2 right-2 flex flex-wrap gap-1 justify-end">
+            <template v-if="itemStatusesMap[item.id]?.length">
+              <StatusBadge 
+                v-for="itemStatus in itemStatusesMap[item.id]" 
+                :key="itemStatus.status?.id || itemStatus.statusKey"
+                :status="itemStatus.status" 
+              />
+            </template>
+            <StatusBadge v-else status="Non défini" />
           </div>
         </div>
 
@@ -148,13 +155,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, unref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { MagnifyingGlassIcon, CubeIcon } from '@heroicons/vue/24/outline'
 import { useItems } from '@/composables/useItems'
 import { useCategories } from '@/composables/useCategories'
 import { useLocations } from '@/composables/useLocations'
 import { useStatuses } from '@/composables/useStatuses'
+import { useQueries } from '@tanstack/vue-query'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import { getLocationsWithIndent } from '@/utils/locationUtils'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -165,6 +173,41 @@ const { data: items, isLoading } = useItems()
 const { data: categories } = useCategories()
 const { data: locations } = useLocations()
 const { data: statuses } = useStatuses()
+
+// Récupérer les statuts actifs pour tous les items
+const statusQueries = useQueries({
+  queries: computed(() => {
+    if (!items.value) return []
+    return items.value.map((item) => ({
+      queryKey: ['item-statuses', 'active', item.id],
+      queryFn: async () => {
+        const { statusesApi } = await import('@/api/endpoints/statuses')
+        return statusesApi.getItemActiveStatus(item.id)
+      },
+      enabled: !!item.id,
+    }))
+  }),
+})
+
+// Mapper les statuts actifs par item ID
+const itemStatusesMap = computed(() => {
+  const map: Record<string, any[]> = {}
+  if (!items.value) return map
+  
+  items.value.forEach((item, index) => {
+    const queryResult = statusQueries.value[index]
+    if (!queryResult || !queryResult.isSuccess) return
+    
+    // Dans Vue Query v5, data est un Ref. Utilisons unref pour être sûr de déballer le Ref
+    const statuses = unref(queryResult.data) || []
+    
+    if (Array.isArray(statuses) && statuses.length > 0) {
+      map[item.id] = statuses
+    }
+  })
+  
+  return map
+})
 
 // Catégories avec indentation hiérarchique
 const categoriesWithIndent = computed(() => getCategoriesWithIndent(categories.value))
