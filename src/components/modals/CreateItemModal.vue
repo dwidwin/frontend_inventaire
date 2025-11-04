@@ -684,17 +684,20 @@ const handleSubmit = async () => {
         }
       }
       
-      // Vérifier les groupes qui ont un statut actif mais plus de sélection
+      // Fermer les statuts des groupes qui n'ont plus de statut sélectionné
       for (const [group, currentStatusKey] of activeStatusByGroup.entries()) {
         if (!selectedStatusByGroup.has(group)) {
           console.log(`🔵 [EDIT ITEM] ⚠️ Groupe ${group} a un statut actif (${currentStatusKey}) mais n'est plus sélectionné`)
+          console.log(`🔵 [EDIT ITEM] ✅ Fermeture du statut actif du groupe ${group}`)
+          try {
+            await statusesApi.closeActiveByGroup(props.item.id, group)
+            console.log(`🔵 [EDIT ITEM] ✅ Statut fermé pour le groupe ${group}`)
+          } catch (error) {
+            console.error(`🔵 [EDIT ITEM] ❌ Erreur lors de la fermeture du statut pour le groupe ${group}:`, error)
+            // Ne pas bloquer si la fermeture échoue
+          }
         }
       }
-      
-      // Fermer les statuts des groupes qui n'ont plus de statut sélectionné
-      // Note: L'API ne permet pas de fermer directement un statut, mais définir un nouveau statut
-      // dans un groupe ferme automatiquement l'ancien. Pour retirer complètement un statut,
-      // il faudrait une fonctionnalité spécifique dans l'API.
       
       // Mettre à jour statusKey pour compatibilité legacy (premier statut sélectionné)
       if (selectedKeys.length > 0) {

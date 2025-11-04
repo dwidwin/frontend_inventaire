@@ -48,4 +48,15 @@ export const statusesApi = {
   getItemStatusHistory: (itemId: string): Promise<ItemStatus[]> => {
     return apiGet<ItemStatus[]>(`/api/item-statuses/item/${itemId}/history`)
   },
+
+  // Fermer les statuts actifs d'un item pour un groupe spécifique
+  closeActiveByGroup: (itemId: string, group: string): Promise<void> => {
+    console.log('🟡 [API] closeActiveByGroup appelé avec:', { itemId, group })
+    return apiDelete<void>(`/api/item-statuses/item/${itemId}/group/${group}`).then(() => {
+      console.log('🟡 [API] closeActiveByGroup succès')
+    }).catch(error => {
+      console.error('🟡 [API] closeActiveByGroup erreur:', error)
+      throw error
+    })
+  },
 }
