@@ -47,11 +47,11 @@
         >
           <option value="">Tous les emplacements</option>
           <option
-            v-for="location in locations"
-            :key="location.id"
-            :value="location.id"
+            v-for="item in locationsWithIndent"
+            :key="item.location.id"
+            :value="item.location.id"
           >
-            {{ location.name }}
+            {{ item.displayText }}
           </option>
         </select>
 
@@ -156,6 +156,7 @@ import { useCategories } from '@/composables/useCategories'
 import { useLocations } from '@/composables/useLocations'
 import { useStatuses } from '@/composables/useStatuses'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
+import { getLocationsWithIndent } from '@/utils/locationUtils'
 import StatusBadge from '@/components/StatusBadge.vue'
 import type { Item } from '@/types'
 
@@ -167,6 +168,9 @@ const { data: statuses } = useStatuses()
 
 // Catégories avec indentation hiérarchique
 const categoriesWithIndent = computed(() => getCategoriesWithIndent(categories.value))
+
+// Emplacements avec indentation hiérarchique
+const locationsWithIndent = computed(() => getLocationsWithIndent(locations.value))
 
 // État local pour les filtres
 const searchQuery = ref('')
@@ -184,12 +188,12 @@ const resetFilters = () => {
 
 // Items filtrés
 const filteredItems = computed(() => {
-  let result = (items.value || []).filter(Boolean)
+  let result = (items.value || []).filter(Boolean) as Item[]
 
   // Recherche textuelle
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    result = result.filter(item => {
+    result = result.filter((item: Item) => {
       const modelName = item.model?.name?.toLowerCase() || ''
       const categoryName = item.model?.category?.name?.toLowerCase() || ''
       const codeBarre = item.codeBarre?.toLowerCase() || ''
@@ -204,21 +208,21 @@ const filteredItems = computed(() => {
 
   // Filtre par catégorie
   if (selectedCategoryId.value) {
-    result = result.filter(item => 
+    result = result.filter((item: Item) => 
       item.model?.category?.id === selectedCategoryId.value
     )
   }
 
   // Filtre par emplacement
   if (selectedLocationId.value) {
-    result = result.filter(item => 
+    result = result.filter((item: Item) => 
       item.location?.id === selectedLocationId.value
     )
   }
 
   // Filtre par état
   if (selectedStatus.value) {
-    result = result.filter(item => 
+    result = result.filter((item: Item) => 
       item.etat === selectedStatus.value
     )
   }

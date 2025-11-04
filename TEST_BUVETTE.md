@@ -133,3 +133,4 @@ Le serveur démarre généralement sur **http://localhost:3000** (ou le port ind
 3. Améliorer l'interface de création de vente avec sélection de produits
 4. Ajouter des statistiques (revenus, produits les plus vendus, etc.)
 
+

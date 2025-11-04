@@ -185,11 +185,11 @@
               >
                 <option value="">Sélectionner un emplacement</option>
                 <option
-                  v-for="location in locations"
-                  :key="location.id"
-                  :value="location.id"
+                  v-for="item in locationsWithIndent"
+                  :key="item.location.id"
+                  :value="item.location.id"
                 >
-                  {{ location.name }}
+                  {{ item.displayText }}
                 </option>
               </select>
             </div>
@@ -335,6 +335,7 @@ import { useCreateItem } from '@/composables/useItems'
 import { useSetItemStatus } from '@/composables/useStatuses'
 import { uploadsApi } from '@/api/endpoints/uploads'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
+import { getLocationsWithIndent } from '@/utils/locationUtils'
 import CameraCapture from '@/components/CameraCapture.vue'
 import type { CreateMaterialModelDto, CreateItemDto } from '@/types'
 
@@ -347,6 +348,9 @@ const { data: locations } = useLocations()
 
 // Catégories avec indentation hiérarchique
 const categoriesWithIndent = computed(() => getCategoriesWithIndent(categories.value))
+
+// Emplacements avec indentation hiérarchique
+const locationsWithIndent = computed(() => getLocationsWithIndent(locations.value))
 
 // Mutations
 const createModelMutation = useCreateMaterialModel()

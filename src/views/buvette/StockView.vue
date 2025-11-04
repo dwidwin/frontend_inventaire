@@ -95,3 +95,4 @@ const handleEdit = (stock: Stock) => {
 }
 </script>
 
+
