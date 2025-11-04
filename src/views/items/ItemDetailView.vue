@@ -64,7 +64,16 @@
               <div>
                 <dt class="text-sm font-medium text-gray-500">État</dt>
                 <dd class="mt-1">
-                  <StatusBadge :status="item?.etat || 'Non défini'" />
+                  <div class="flex flex-wrap gap-1">
+                    <template v-if="activeStatusesByGroup && Object.values(activeStatusesByGroup).some(s => s)">
+                      <StatusBadge 
+                        v-for="itemStatus in Object.values(activeStatusesByGroup).filter(s => s && s.status)"
+                        :key="itemStatus.status?.id"
+                        :status="itemStatus.status" 
+                      />
+                    </template>
+                    <StatusBadge v-else status="Non défini" />
+                  </div>
                 </dd>
               </div>
               <div>
