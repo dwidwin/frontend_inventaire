@@ -34,6 +34,8 @@ export interface Category extends BaseEntity {
   parentId?: string
   parent?: Category
   children?: Category[]
+  createdBy?: User
+  updatedBy?: User
 }
 
 export interface CreateCategoryDto {
@@ -56,6 +58,8 @@ export interface MaterialModel extends BaseEntity {
   referenceFournisseur?: string
   description?: string
   mainImageUrl?: string
+  createdBy?: User
+  updatedBy?: User
 }
 
 export interface CreateMaterialModelDto {
@@ -105,6 +109,8 @@ export interface Item extends BaseEntity {
   codeBarre?: string
   photoUrl?: string
   etat?: string
+  createdBy?: User
+  updatedBy?: User
 }
 
 export interface CreateItemDto {
@@ -185,6 +191,8 @@ export interface Status extends BaseEntity {
   color?: string
   isActive: boolean
   sortOrder: number
+  createdBy?: User
+  updatedBy?: User
 }
 
 export interface CreateStatusDto {
