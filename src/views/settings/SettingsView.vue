@@ -223,8 +223,36 @@
           </button>
         </div>
 
+        <!-- Filtres -->
+        <div class="mb-4 flex flex-wrap gap-4 items-end">
+          <div class="flex-1 min-w-[200px]">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Groupe</label>
+            <select
+              v-model="statusGroupFilter"
+              class="form-select w-full"
+            >
+              <option value="">Tous les groupes</option>
+              <option :value="StatusGroupEnum.COMMERCIAL">Commercial</option>
+              <option :value="StatusGroupEnum.AUDIENCE">Audience</option>
+              <option :value="StatusGroupEnum.CONDITION">Condition</option>
+              <option :value="StatusGroupEnum.LIFECYCLE">Cycle de vie</option>
+            </select>
+          </div>
+          <div class="flex-1 min-w-[200px]">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+            <select
+              v-model="statusActiveFilter"
+              class="form-select w-full"
+            >
+              <option value="">Tous</option>
+              <option value="true">Actif</option>
+              <option value="false">Inactif</option>
+            </select>
+          </div>
+        </div>
+
         <DataTable
-          :data="statuses || []"
+          :data="filteredStatuses"
           :columns="statusColumns"
           :is-loading="isLoadingStatuses"
           @edit="handleEditStatus"
@@ -250,6 +278,14 @@
               :status="item.isActive ? 'Actif' : 'Inactif'"
               :color="item.isActive ? 'success' : 'danger'"
             />
+          </template>
+
+          <template #cell-createdAt="{ item }">
+            <span class="text-sm text-gray-900">{{ formatDate(item.createdAt) }}</span>
+          </template>
+
+          <template #cell-createdBy="{ item }">
+            <span class="text-sm text-gray-500">-</span>
           </template>
         </DataTable>
       </div>
@@ -387,6 +423,7 @@ import DeleteStatusModal from '@/components/modals/DeleteStatusModal.vue'
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
 import type { Category, MaterialModel, Transaction, User, Item, Status, StatusGroup } from '@/types'
 import { StatusGroup as StatusGroupEnum } from '@/types'
+import { formatDate } from '@/utils/formatDate'
 
 // Tabs
 const tabs = [
@@ -445,6 +482,8 @@ const showCreateStatusModal = ref(false)
 const showEditStatusModal = ref(false)
 const showDeleteStatusModal = ref(false)
 const selectedStatus = ref<Status | null>(null)
+const statusGroupFilter = ref<string>('')
+const statusActiveFilter = ref<string>('')
 
 // Colonnes pour les modèles
 const modelColumns = [
@@ -476,13 +515,13 @@ const itemColumns = [
 
 // Colonnes pour les statuts
 const statusColumns = [
-  { key: 'key', label: 'Clé', sortable: true },
   { key: 'label', label: 'Libellé', sortable: true },
   { key: 'group', label: 'Groupe', sortable: true },
   { key: 'color', label: 'Couleur', sortable: false },
   { key: 'sortOrder', label: 'Ordre', sortable: true },
   { key: 'isActive', label: 'Statut', sortable: true },
   { key: 'createdAt', label: 'Créé le', sortable: true },
+  { key: 'createdBy', label: 'Créé par', sortable: false },
 ]
 
 // Colonnes pour les utilisateurs
@@ -642,6 +681,24 @@ const getGroupLabel = (group: StatusGroup): string => {
   }
   return labels[group] || group
 }
+
+// Filtrage des statuts
+const filteredStatuses = computed(() => {
+  let result = statuses.value || []
+  
+  // Filtre par groupe
+  if (statusGroupFilter.value) {
+    result = result.filter(status => status.group === statusGroupFilter.value)
+  }
+  
+  // Filtre par statut actif/inactif
+  if (statusActiveFilter.value !== '') {
+    const isActive = statusActiveFilter.value === 'true'
+    result = result.filter(status => status.isActive === isActive)
+  }
+  
+  return result
+})
 
 // Construire l'arborescence des catégories
 const categoryTree = computed(() => {
