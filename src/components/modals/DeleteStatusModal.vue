@@ -89,15 +89,27 @@ const getGroupLabel = (group: StatusGroup): string => {
 }
 
 const handleConfirm = async () => {
+  if (!props.status?.id) {
+    alert('Erreur: ID du statut manquant')
+    emit('close')
+    return
+  }
+
   isDeleting.value = true
   
   try {
     await deleteStatusMutation.mutateAsync(props.status.id)
     emit('confirmed')
     emit('close')
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la suppression du statut:', error)
-    alert('Erreur lors de la suppression du statut. Veuillez réessayer.')
+    const errorMessage = error?.response?.data?.message || error?.message || 'Une erreur est survenue'
+    alert(`Erreur lors de la suppression du statut: ${errorMessage}`)
+    // Si le statut n'existe pas, on ferme quand même le modal
+    if (error?.response?.status === 404) {
+      emit('confirmed') // On confirme pour rafraîchir la liste
+      emit('close')
+    }
   } finally {
     isDeleting.value = false
   }

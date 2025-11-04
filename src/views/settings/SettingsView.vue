@@ -599,8 +599,14 @@ const handleStatusDeleted = async () => {
     await deleteStatusMutation.mutateAsync(selectedStatus.value.id)
     showDeleteStatusModal.value = false
     selectedStatus.value = null
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la suppression du statut:', error)
+    // Le modal gère déjà l'affichage de l'erreur, on ne fait que nettoyer
+    if (error?.response?.status === 404) {
+      // Si le statut n'existe pas, on ferme quand même
+      showDeleteStatusModal.value = false
+      selectedStatus.value = null
+    }
   }
 }
 
