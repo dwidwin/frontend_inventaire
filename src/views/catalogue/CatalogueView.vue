@@ -71,7 +71,7 @@
           <label class="text-sm font-medium text-gray-700">Filtrer par état</label>
           <div class="flex flex-wrap gap-2">
             <button
-              v-for="status in statusesList"
+              v-for="(status, index) in statusesList"
               :key="status.id"
               @click="toggleStatus(status.key)"
               :class="[
@@ -80,6 +80,8 @@
                 isStatusSelected(status.key)
                   ? 'ring-2 ring-offset-2 ring-gray-900 shadow-md scale-105'
                   : 'opacity-70 hover:opacity-100',
+                // Sur mobile, cacher les statuts après le 5ème sauf si showAllStatuses est vrai
+                !showAllStatuses && index >= MAX_STATUSES_MOBILE ? 'hidden md:inline-flex' : '',
                 getStatusButtonClasses(status)
               ]"
               :style="getStatusButtonStyle(status)"
@@ -87,13 +89,22 @@
               {{ status.label }}
             </button>
           </div>
-          <button
-            v-if="selectedStatuses.length > 0"
-            @click="clearStatusFilter"
-            class="text-xs text-gray-500 hover:text-gray-700 mt-1 w-fit"
-          >
-            Effacer {{ selectedStatuses.length }} sélectionné{{ selectedStatuses.length > 1 ? 's' : '' }}
-          </button>
+          <div class="flex items-center gap-3 mt-1">
+            <button
+              v-if="selectedStatuses.length > 0"
+              @click="clearStatusFilter"
+              class="text-xs text-gray-500 hover:text-gray-700 w-fit"
+            >
+              Effacer {{ selectedStatuses.length }} sélectionné{{ selectedStatuses.length > 1 ? 's' : '' }}
+            </button>
+            <button
+              v-if="showMoreButton"
+              @click="showAllStatuses = !showAllStatuses"
+              class="text-xs text-primary-600 hover:text-primary-700 font-medium md:hidden"
+            >
+              {{ showAllStatuses ? 'Voir moins' : 'Voir plus' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -243,6 +254,14 @@ const searchQuery = ref('')
 const selectedCategoryId = ref('')
 const selectedLocationId = ref('')
 const selectedStatuses = ref<string[]>([])
+const showAllStatuses = ref(false)
+
+// Limiter l'affichage à 5 statuts sur mobile
+const MAX_STATUSES_MOBILE = 5
+
+const showMoreButton = computed(() => {
+  return statusesList.value.length > MAX_STATUSES_MOBILE
+})
 
 // Fonctions pour gérer la sélection multiple des statuts
 const toggleStatus = (statusKey: string) => {
@@ -304,6 +323,7 @@ const resetFilters = () => {
   selectedCategoryId.value = ''
   selectedLocationId.value = ''
   selectedStatuses.value = []
+  showAllStatuses.value = false
 }
 
 // Items filtrés
