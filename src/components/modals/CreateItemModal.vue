@@ -617,25 +617,48 @@ const handleSubmit = async () => {
         await uploadsApi.uploadItemImage(props.item.id, form.photos.item.file)
       }
       
-      // 3. Définir tous les statuts sélectionnés
-      // Le backend ferme automatiquement les anciens statuts du même groupe
+      // 3. Gérer les statuts sélectionnés
+      // Le système ne permet qu'un seul statut actif par groupe
+      // On doit comparer les statuts actifs par groupe avec les statuts sélectionnés
       const selectedKeys = form.item.selectedStatusKeys.filter(key => key.trim())
       
-      // Définir tous les statuts sélectionnés (même s'ils sont déjà actifs)
-      // Cela garantit que tous les changements sont pris en compte, notamment
-      // quand on change un statut dans un groupe (ex: de "Neuf" à "Usé")
+      // Créer un map des statuts actifs par groupe
+      const activeStatusByGroup = new Map<StatusGroup, string>()
+      if (activeItemStatuses.value) {
+        activeItemStatuses.value.forEach(itemStatus => {
+          if (itemStatus.status?.group && itemStatus.status?.key) {
+            activeStatusByGroup.set(itemStatus.status.group, itemStatus.status.key)
+          }
+        })
+      }
+      
+      // Créer un map des statuts sélectionnés par groupe
+      const selectedStatusByGroup = new Map<StatusGroup, string>()
       for (const statusKey of selectedKeys) {
-        // Vérifier que le statusKey est valide (existe dans la liste des statuts)
-        const isValidStatusKey = statusKey && statuses.value?.some(s => s.key === statusKey)
+        const status = statuses.value?.find(s => s.key === statusKey)
+        if (status && status.group) {
+          // Si un groupe a déjà un statut sélectionné, on garde le dernier (ou on pourrait gérer différemment)
+          selectedStatusByGroup.set(status.group, statusKey)
+        }
+      }
+      
+      // Définir uniquement les statuts qui ont changé ou qui sont nouveaux
+      for (const [group, statusKey] of selectedStatusByGroup.entries()) {
+        const currentStatusKey = activeStatusByGroup.get(group)
         
-        if (isValidStatusKey) {
-          // Définir le statut (le backend fermera automatiquement les anciens du même groupe)
+        // Si le statut a changé ou n'existe pas encore, le définir
+        if (currentStatusKey !== statusKey) {
           await setItemStatusMutation.mutateAsync({
             itemId: props.item.id,
             statusKey: statusKey
           })
         }
       }
+      
+      // Fermer les statuts des groupes qui n'ont plus de statut sélectionné
+      // Note: L'API ne permet pas de fermer directement un statut, mais définir un nouveau statut
+      // dans un groupe ferme automatiquement l'ancien. Pour retirer complètement un statut,
+      // il faudrait une fonctionnalité spécifique dans l'API.
       
       // Mettre à jour statusKey pour compatibilité legacy (premier statut sélectionné)
       if (selectedKeys.length > 0) {
