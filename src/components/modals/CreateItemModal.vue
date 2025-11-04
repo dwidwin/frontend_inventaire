@@ -449,7 +449,7 @@ const errors = reactive({
 })
 
 // Initialiser le formulaire en mode édition
-watch([() => props.item, activeItemStatus], ([item, status]) => {
+watch([() => props.item, activeItemStatus, () => statuses.value], ([item, status, statusList]) => {
   if (isEditMode.value && item) {
     // En mode édition, commencer à l'étape 2 (Item)
     currentStep.value = 2
@@ -461,9 +461,16 @@ watch([() => props.item, activeItemStatus], ([item, status]) => {
     // Récupérer le statut actif si disponible
     if (status?.status?.key) {
       form.item.statusKey = status.status.key
-    } else if (item.etat) {
-      // Fallback sur l'état de l'item
-      form.item.statusKey = item.etat
+    } else if (item.etat && statusList) {
+      // Fallback sur l'état de l'item, mais seulement s'il existe dans la liste des statuts
+      const matchingStatus = statusList.find(s => s.key === item.etat)
+      if (matchingStatus) {
+        form.item.statusKey = item.etat
+      } else {
+        form.item.statusKey = ''
+      }
+    } else {
+      form.item.statusKey = ''
     }
   }
 }, { immediate: true })
@@ -544,11 +551,20 @@ const handleSubmit = async () => {
         await uploadsApi.uploadItemImage(props.item.id, form.photos.item.file)
       }
       
-      // 3. Mettre à jour le statut si modifié
-      if (form.item.statusKey && form.item.statusKey !== activeItemStatus.value?.status?.key) {
+      // 3. Mettre à jour le statut si modifié et valide
+      const currentStatusKey = activeItemStatus.value?.status?.key
+      const newStatusKey = form.item.statusKey?.trim() || ''
+      
+      // Vérifier que le statusKey est valide (existe dans la liste des statuts)
+      const isValidStatusKey = newStatusKey && statuses.value?.some(s => s.key === newStatusKey)
+      
+      // Mettre à jour le statut seulement si :
+      // - Le nouveau statut est valide ET différent du statut actuel
+      // - OU si on passe d'un statut à aucun statut (mais on ne peut pas faire ça avec l'API actuelle)
+      if (isValidStatusKey && newStatusKey !== currentStatusKey) {
         await setItemStatusMutation.mutateAsync({
           itemId: props.item.id,
-          statusKey: form.item.statusKey
+          statusKey: newStatusKey
         })
       }
       
