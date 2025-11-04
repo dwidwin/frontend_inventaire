@@ -205,7 +205,16 @@
           </template>
 
           <template #cell-etat="{ item }">
-            <StatusBadge :status="item.etat || 'Non défini'" />
+            <div class="flex flex-wrap gap-1">
+              <template v-if="itemStatusesMap[item.id]?.length">
+                <StatusBadge 
+                  v-for="itemStatus in itemStatusesMap[item.id]" 
+                  :key="itemStatus.status?.id || itemStatus.statusKey"
+                  :status="itemStatus.status" 
+                />
+              </template>
+              <StatusBadge v-else status="Non défini" />
+            </div>
           </template>
         </DataTable>
       </div>
@@ -410,7 +419,7 @@ import { useCategories } from '@/composables/useCategories'
 import { useUsers } from '@/composables/useUsers'
 import { useItems } from '@/composables/useItems'
 import { useStatuses, useDeleteStatus } from '@/composables/useStatuses'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueries } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints/materialModels'
 import { transactionsApi } from '@/api/endpoints/transactions'
 import DataTable from '@/components/DataTable.vue'
@@ -449,6 +458,37 @@ const { data: models, isLoading: isLoadingModels } = useQuery({
   queryFn: () => materialModelsApi.list(),
 })
 const { data: items, isLoading: isLoadingItems } = useItems()
+
+// Récupérer les statuts actifs pour tous les items
+const statusQueries = useQueries({
+  queries: computed(() => {
+    if (!items.value) return []
+    return items.value.map((item) => ({
+      queryKey: ['item-statuses', 'active', item.id],
+      queryFn: async () => {
+        const { statusesApi } = await import('@/api/endpoints/statuses')
+        return statusesApi.getItemActiveStatus(item.id)
+      },
+      enabled: !!item.id,
+    }))
+  }),
+})
+
+// Mapper les statuts actifs par item ID
+const itemStatusesMap = computed(() => {
+  const map: Record<string, any[]> = {}
+  if (!items.value) return map
+  
+  items.value.forEach((item, index) => {
+    const statuses = statusQueries.value[index]?.data?.value || []
+    if (statuses.length > 0) {
+      map[item.id] = statuses
+    }
+  })
+  
+  return map
+})
+
 const { data: transactions, isLoading: isLoadingTransactions } = useQuery({
   queryKey: ['transactions'],
   queryFn: () => transactionsApi.list(),
