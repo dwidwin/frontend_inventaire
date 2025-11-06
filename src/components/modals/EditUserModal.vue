@@ -157,7 +157,6 @@
                 Aucun historique disponible
               </div>
             </div>
-          </div>
 
           <!-- Erreurs -->
           <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
