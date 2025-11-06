@@ -100,10 +100,14 @@
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-900">Créé</p>
                   <p class="text-sm text-gray-600">
-                    <span v-if="user.createdAt">
-                      le <span class="font-medium">{{ formatDateTime(user.createdAt) }}</span>
+                    <span v-if="user.createdBy">
+                      par <span class="font-medium">{{ user.createdBy.username || user.createdBy.email }}</span>
                     </span>
-                    <span v-else class="text-gray-400">Date inconnue</span>
+                    <span v-else class="text-gray-400">par un utilisateur inconnu</span>
+                    <span v-if="user.createdAt" class="ml-2">
+                      le <span class="font-medium">{{ formatDateTimeWithDay(user.createdAt) }}</span>
+                    </span>
+                    <span v-else class="text-gray-400 ml-2">Date inconnue</span>
                   </p>
                 </div>
               </div>
@@ -118,10 +122,32 @@
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-900">Modifié</p>
                   <p class="text-sm text-gray-600">
-                    <span v-if="user.updatedAt">
-                      le <span class="font-medium">{{ formatDateTime(user.updatedAt) }}</span>
+                    <span v-if="user.updatedBy">
+                      par <span class="font-medium">{{ user.updatedBy.username || user.updatedBy.email }}</span>
                     </span>
-                    <span v-else class="text-gray-400">Date inconnue</span>
+                    <span v-else class="text-gray-400">par un utilisateur inconnu</span>
+                    <span v-if="user.updatedAt" class="ml-2">
+                      le <span class="font-medium">{{ formatDateTimeWithDay(user.updatedAt) }}</span>
+                    </span>
+                    <span v-else class="text-gray-400 ml-2">Date inconnue</span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Acceptation -->
+              <div v-if="user.activatedBy && user.activatedAt" class="flex items-start space-x-3">
+                <div class="flex-shrink-0">
+                  <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                    <CheckCircleIcon class="w-4 h-4 text-purple-600" />
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900">Accepté</p>
+                  <p class="text-sm text-gray-600">
+                    par <span class="font-medium">{{ user.activatedBy.username || user.activatedBy.email }}</span>
+                    <span class="ml-2">
+                      le <span class="font-medium">{{ formatDateTimeWithDay(user.activatedAt) }}</span>
+                    </span>
                   </p>
                 </div>
               </div>
@@ -159,9 +185,9 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { XMarkIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, PlusIcon, PencilIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import { useUpdateUser } from '@/composables/useUsers'
-import { formatDateTime } from '@/utils/formatDate'
+import { formatDateTimeWithDay } from '@/utils/formatDate'
 import type { User, UpdateUserDto } from '@/types'
 
 interface Props {

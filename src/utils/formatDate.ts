@@ -34,3 +34,8 @@ export const formatDateShort = (date: string | Date | null | undefined) => {
 export const formatDateTime = (date: string | Date | null | undefined) => {
   return safeFormatDate(date, 'dd-MM-yyyy HH:mm')
 }
+
+// Format avec jour de la semaine : EEEE dd-MM-yyyy HH:mm (pour historique détaillé)
+export const formatDateTimeWithDay = (date: string | Date | null | undefined) => {
+  return safeFormatDate(date, 'EEEE dd-MM-yyyy HH:mm')
+}

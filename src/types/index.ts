@@ -11,6 +11,10 @@ export interface User extends BaseEntity {
   email: string
   role: 'USER' | 'MANAGER' | 'ADMIN'
   isActive: boolean
+  createdBy?: User
+  updatedBy?: User
+  activatedBy?: User
+  activatedAt?: string
 }
 
 export interface LoginDto {
