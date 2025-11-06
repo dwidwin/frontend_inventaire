@@ -155,7 +155,7 @@
         >
           <template #cell-saleDate="{ item }">
             <div class="text-sm text-gray-900">
-              {{ new Date(item.saleDate).toLocaleDateString('fr-FR') }}
+              {{ formatDate(item.saleDate) }}
             </div>
           </template>
 
@@ -202,6 +202,7 @@ import { useStocks, useLowStock } from '@/composables/useStocks'
 import { useSales } from '@/composables/useSales'
 import { useAuthStore } from '@/stores/auth'
 import DataTable from '@/components/DataTable.vue'
+import { formatDate } from '@/utils/formatDate'
 import type { Product, Stock } from '@/types'
 
 const authStore = useAuthStore()

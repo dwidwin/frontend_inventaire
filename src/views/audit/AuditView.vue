@@ -80,6 +80,12 @@
         />
       </template>
       
+      <template #cell-createdAt="{ item }">
+        <div class="text-sm text-gray-900">
+          {{ formatDate(item.createdAt) }}
+        </div>
+      </template>
+      
       <template #cell-details="{ item }">
         <button
           @click="showDetails(item)"
@@ -98,6 +104,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { auditApi } from '@/api/endpoints/audit'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { formatDate } from '@/utils/formatDate'
 import type { AuditLog, SearchParams } from '@/types'
 
 // Filtres

@@ -59,6 +59,18 @@
         <span v-else class="text-sm text-gray-500">-</span>
       </template>
       
+      <template #cell-startAt="{ item }">
+        <div class="text-sm text-gray-900">
+          {{ formatDate(item.startAt) }}
+        </div>
+      </template>
+      
+      <template #cell-dueAt="{ item }">
+        <div class="text-sm text-gray-900">
+          {{ formatDate(item.dueAt) }}
+        </div>
+      </template>
+      
       <template #cell-status="{ item }">
         <StatusBadge
           :status="item.closedAt ? 'Clôturée' : 'En cours'"
@@ -77,6 +89,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { transactionsApi } from '@/api/endpoints/transactions'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { formatDate } from '@/utils/formatDate'
 import type { Transaction } from '@/types'
 
 const authStore = useAuthStore()

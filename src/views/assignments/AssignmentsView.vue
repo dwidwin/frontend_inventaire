@@ -47,6 +47,18 @@
         <span v-else class="text-sm text-gray-500">-</span>
       </template>
       
+      <template #cell-startAt="{ item }">
+        <div class="text-sm text-gray-900">
+          {{ formatDate(item.startAt) }}
+        </div>
+      </template>
+      
+      <template #cell-endAt="{ item }">
+        <div class="text-sm text-gray-900">
+          {{ item.endAt ? formatDate(item.endAt) : '-' }}
+        </div>
+      </template>
+      
       <template #cell-status="{ item }">
         <StatusBadge
           :status="item.endAt ? 'Clôturée' : 'Active'"
@@ -65,6 +77,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { formatDate } from '@/utils/formatDate'
 import type { Assignment } from '@/types'
 
 const authStore = useAuthStore()

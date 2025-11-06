@@ -65,6 +65,12 @@
           </button>
         </div>
       </template>
+      
+      <template #cell-createdAt="{ item }">
+        <div class="text-sm text-gray-900">
+          {{ formatDate(item.createdAt) }}
+        </div>
+      </template>
     </DataTable>
 
     <!-- Modal d'édition -->
@@ -85,6 +91,7 @@ import { useUsers, useActivateAccount } from '@/composables/useUsers'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import EditUserModal from '@/components/modals/EditUserModal.vue'
+import { formatDate } from '@/utils/formatDate'
 import type { User } from '@/types'
 
 const authStore = useAuthStore()

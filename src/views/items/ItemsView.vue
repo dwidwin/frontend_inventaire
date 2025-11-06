@@ -81,6 +81,12 @@
         </div>
       </template>
 
+      <template #cell-createdAt="{ item }">
+        <div class="text-sm text-gray-900">
+          {{ formatDate(item.createdAt) }}
+        </div>
+      </template>
+
       <template #actions="{ item }">
         <div v-if="item && item.id" class="flex items-center space-x-2">
           <RouterLink
@@ -146,6 +152,7 @@ import CreateItemModal from '@/components/modals/CreateItemModal.vue'
 import EditItemModal from '@/components/modals/EditItemModal.vue'
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
 import ScanModal from '@/components/modals/ScanModal.vue'
+import { formatDate } from '@/utils/formatDate'
 import type { Item } from '@/types'
 
 const authStore = useAuthStore()

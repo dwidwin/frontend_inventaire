@@ -94,6 +94,10 @@
             />
             <span v-else class="text-sm text-gray-500">Aucune image</span>
           </template>
+          
+          <template #cell-createdAt="{ item }">
+            <span class="text-sm text-gray-900">{{ formatDate(item.createdAt) }}</span>
+          </template>
         </DataTable>
       </div>
 
@@ -144,6 +148,18 @@
               {{ item.externalName }}
             </div>
             <span v-else class="text-sm text-gray-500">-</span>
+          </template>
+          
+          <template #cell-startAt="{ item }">
+            <div class="text-sm text-gray-900">
+              {{ formatDate(item.startAt) }}
+            </div>
+          </template>
+          
+          <template #cell-dueAt="{ item }">
+            <div class="text-sm text-gray-900">
+              {{ formatDate(item.dueAt) }}
+            </div>
           </template>
           
           <template #cell-status="{ item }">
@@ -215,6 +231,10 @@
               </template>
               <StatusBadge v-else status="Non défini" />
             </div>
+          </template>
+          
+          <template #cell-createdAt="{ item }">
+            <span class="text-sm text-gray-900">{{ formatDate(item.createdAt) }}</span>
           </template>
         </DataTable>
       </div>
@@ -327,6 +347,10 @@
               :status="item.isActive ? 'Actif' : 'Inactif'"
               :color="item.isActive ? 'success' : 'danger'"
             />
+          </template>
+          
+          <template #cell-createdAt="{ item }">
+            <span class="text-sm text-gray-900">{{ formatDate(item.createdAt) }}</span>
           </template>
         </DataTable>
       </div>
