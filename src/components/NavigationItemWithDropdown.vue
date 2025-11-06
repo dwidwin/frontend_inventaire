@@ -110,14 +110,23 @@ const shouldBeOpenInitially = computed(() => {
 const isOpen = ref(shouldBeOpenInitially.value)
 const dropdownRef = ref<HTMLElement | null>(null)
 
-// Surveiller les changements de route pour ouvrir/fermer le menu
-watch(() => route.path, () => {
-  const shouldBeOpen = props.item.subItems.some(subItem => {
+// Fonction pour vérifier si on est sur une page de paramètres
+const isOnSettingsPage = () => {
+  return props.item.subItems.some(subItem => {
     const basePath = subItem.href.split('?')[0]
     return route.path.startsWith(basePath)
   })
+}
+
+// Surveiller les changements de route pour ouvrir/fermer le menu
+watch(() => route.path, () => {
+  const shouldBeOpen = isOnSettingsPage()
   if (shouldBeOpen) {
+    // Ouvrir le menu si on navigue vers une page de paramètres
     isOpen.value = true
+  } else {
+    // Fermer le menu uniquement si on quitte toutes les pages de paramètres
+    isOpen.value = false
   }
 })
 
@@ -154,17 +163,20 @@ const isSubItemActive = (href: string) => {
   return route.path.startsWith(basePath)
 }
 
-// Fermer le menu au clic sur un sous-item
+// Gérer le clic sur un sous-item - ne pas fermer le menu pour rester ouvert lors de la navigation
 const handleSubItemClick = () => {
-  isOpen.value = false
+  // Ne pas fermer le menu - il doit rester ouvert lors de la navigation entre les pages de paramètres
   emit('click')
 }
 
-// Fermer le menu au clic extérieur
+// Fermer le menu au clic extérieur - mais seulement si on n'est pas sur une page de paramètres
 const handleClickOutside = (event: Event) => {
   const target = event.target as Element
   if (dropdownRef.value && !dropdownRef.value.contains(target)) {
-    isOpen.value = false
+    // Ne pas fermer le menu si on est sur une page de paramètres
+    if (!isOnSettingsPage()) {
+      isOpen.value = false
+    }
   }
 }
 
