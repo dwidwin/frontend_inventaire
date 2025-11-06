@@ -88,61 +88,63 @@
 
           <!-- Historique -->
           <div v-if="user" class="mt-6 pt-6 border-t border-gray-200">
-            <h4 class="text-sm font-medium text-gray-900 mb-4">Historique</h4>
-            <div class="space-y-3">
-              <!-- Création -->
-              <div class="flex items-start space-x-3">
-                <div class="flex-shrink-0">
-                  <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                    <PlusIcon class="w-4 h-4 text-green-600" />
-                  </div>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900">Créé</p>
-                  <p class="text-sm text-gray-600">
-                    <span v-if="user.createdBy">
-                      par <span class="font-medium">{{ user.createdBy.username || user.createdBy.email }}</span>
-                    </span>
-                    <span v-else class="text-gray-400">par un utilisateur inconnu</span>
-                    <span v-if="user.createdAt" class="ml-2">
-                      le <span class="font-medium">{{ formatDateTimeWithDay(user.createdAt) }}</span>
-                    </span>
-                    <span v-else class="text-gray-400 ml-2">Date inconnue</span>
-                  </p>
-                </div>
-              </div>
-
-              <!-- Modifications -->
-              <div v-if="modificationHistory && modificationHistory.length > 0" class="space-y-2">
+            <h4 class="text-sm font-medium text-gray-900 mb-4">Historique complet</h4>
+            <div v-if="isLoadingHistory" class="text-sm text-gray-500 text-center py-4">
+              Chargement de l'historique...
+            </div>
+            <!-- Historique complet des événements -->
+            <div v-else-if="modificationHistory && modificationHistory.length > 0" class="space-y-2 max-h-96 overflow-y-auto pr-2">
                 <div
-                  v-for="(modification, index) in modificationHistory"
-                  :key="modification.id || index"
+                  v-for="(event, index) in modificationHistory"
+                  :key="event.id || index"
                   class="flex items-start space-x-3"
                 >
                   <div class="flex-shrink-0">
-                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                      <PencilIcon class="w-4 h-4 text-blue-600" />
+                    <div 
+                      class="w-8 h-8 rounded-full flex items-center justify-center"
+                      :class="{
+                        'bg-green-100': event.action === 'users.create',
+                        'bg-blue-100': event.action === 'users.update',
+                        'bg-purple-100': event.action === 'users.activate'
+                      }"
+                    >
+                      <PlusIcon v-if="event.action === 'users.create'" class="w-4 h-4 text-green-600" />
+                      <PencilIcon v-else-if="event.action === 'users.update'" class="w-4 h-4 text-blue-600" />
+                      <CheckCircleIcon v-else-if="event.action === 'users.activate'" class="w-4 h-4 text-purple-600" />
                     </div>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900">Modifié</p>
+                    <p class="text-sm font-medium text-gray-900">
+                      <span v-if="event.action === 'users.create'">Créé</span>
+                      <span v-else-if="event.action === 'users.update'">Modifié</span>
+                      <span v-else-if="event.action === 'users.activate'">Accepté</span>
+                      <span v-else>Événement</span>
+                    </p>
                     <p class="text-sm text-gray-600">
-                      <span v-if="modification.actorUser">
-                        par <span class="font-medium">{{ modification.actorUser.username || modification.actorUser.email }}</span>
+                      <span v-if="event.actorUser">
+                        par <span class="font-medium">{{ event.actorUser.username || event.actorUser.email }}</span>
                       </span>
-                      <span v-else-if="modification.actorUserId" class="text-gray-400">
+                      <span v-else-if="event.actorUserId" class="text-gray-400">
                         par un utilisateur
                       </span>
                       <span v-else class="text-gray-400">par un utilisateur inconnu</span>
-                      <span v-if="modification.createdAt" class="ml-2">
-                        le <span class="font-medium">{{ formatDateTimeWithDay(modification.createdAt) }}</span>
+                      <span v-if="event.createdAt" class="ml-2">
+                        le <span class="font-medium">{{ formatDateTimeWithDay(event.createdAt) }}</span>
                       </span>
                     </p>
                     <!-- Détails des changements -->
-                    <div v-if="modification.details?.changes" class="mt-2 pl-4 border-l-2 border-blue-200">
+                    <div v-if="event.details?.changes && event.details.changes.length > 0" class="mt-2 pl-4 border-l-2" :class="{
+                      'border-green-200': event.action === 'users.create',
+                      'border-blue-200': event.action === 'users.update',
+                      'border-purple-200': event.action === 'users.activate'
+                    }">
                       <ul class="text-xs text-gray-600 space-y-1">
-                        <li v-for="(change, idx) in modification.details.changes" :key="idx" class="flex items-start">
-                          <span class="text-blue-600 mr-1">•</span>
+                        <li v-for="(change, idx) in event.details.changes" :key="idx" class="flex items-start">
+                          <span class="mr-1" :class="{
+                            'text-green-600': event.action === 'users.create',
+                            'text-blue-600': event.action === 'users.update',
+                            'text-purple-600': event.action === 'users.activate'
+                          }">•</span>
                           <span>{{ change }}</span>
                         </li>
                       </ul>
@@ -150,44 +152,9 @@
                   </div>
                 </div>
               </div>
-              <!-- Fallback si pas d'historique détaillé mais updatedAt existe -->
-              <div v-else-if="user.updatedAt && user.updatedAt !== user.createdAt" class="flex items-start space-x-3">
-                <div class="flex-shrink-0">
-                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <PencilIcon class="w-4 h-4 text-blue-600" />
-                  </div>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900">Modifié</p>
-                  <p class="text-sm text-gray-600">
-                    <span v-if="user.updatedBy">
-                      par <span class="font-medium">{{ user.updatedBy.username || user.updatedBy.email }}</span>
-                    </span>
-                    <span v-else class="text-gray-400">par un utilisateur inconnu</span>
-                    <span v-if="user.updatedAt" class="ml-2">
-                      le <span class="font-medium">{{ formatDateTimeWithDay(user.updatedAt) }}</span>
-                    </span>
-                    <span v-else class="text-gray-400 ml-2">Date inconnue</span>
-                  </p>
-                </div>
-              </div>
-
-              <!-- Acceptation -->
-              <div v-if="user.activatedBy && user.activatedAt" class="flex items-start space-x-3">
-                <div class="flex-shrink-0">
-                  <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                    <CheckCircleIcon class="w-4 h-4 text-purple-600" />
-                  </div>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900">Accepté</p>
-                  <p class="text-sm text-gray-600">
-                    par <span class="font-medium">{{ user.activatedBy.username || user.activatedBy.email }}</span>
-                    <span class="ml-2">
-                      le <span class="font-medium">{{ formatDateTimeWithDay(user.activatedAt) }}</span>
-                    </span>
-                  </p>
-                </div>
+              <!-- Message si aucun historique -->
+              <div v-else class="text-sm text-gray-500 text-center py-4">
+                Aucun historique disponible
               </div>
             </div>
           </div>
@@ -262,9 +229,12 @@ const loadModificationHistory = async () => {
   isLoadingHistory.value = true
   try {
     const response = await usersApi.getHistory(props.user.id)
-    // Filtrer uniquement les modifications (users.update et users.activate)
+    // Afficher TOUS les événements (création, modifications, activation)
     modificationHistory.value = response.data.filter(
-      (log: AuditLog) => log.action === 'users.update' || log.action === 'users.activate'
+      (log: AuditLog) => 
+        log.action === 'users.create' || 
+        log.action === 'users.update' || 
+        log.action === 'users.activate'
     )
   } catch (err) {
     console.error('Erreur lors du chargement de l\'historique:', err)
