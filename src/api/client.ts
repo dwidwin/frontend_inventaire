@@ -12,6 +12,7 @@ export const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: false, // Désactivé car CORS gère les credentials
 })
 
 // Instance pour les uploads
@@ -119,13 +120,33 @@ uploadClient.interceptors.response.use(
 
 // Fonction utilitaire pour extraire les erreurs API
 export const extractApiError = (error: AxiosError): ApiError => {
+  // Gestion des erreurs réseau (CORS, timeout, etc.)
+  if (!error.response) {
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      return {
+        message: 'Erreur de connexion au serveur. Vérifiez votre connexion internet et que le serveur est accessible.',
+        statusCode: 0,
+        error: 'Network Error',
+        details: error.message,
+      }
+    }
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      return {
+        message: 'La requête a expiré. Le serveur met trop de temps à répondre.',
+        statusCode: 408,
+        error: 'Timeout',
+        details: error.message,
+      }
+    }
+  }
+  
   const response = error.response?.data as any
   
   return {
     message: response?.message || error.message || 'Une erreur est survenue',
     statusCode: error.response?.status || 500,
-    error: response?.error,
-    details: response?.details,
+    error: response?.error || error.code,
+    details: response?.details || error.message,
   }
 }
 
