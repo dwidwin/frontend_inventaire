@@ -31,4 +31,9 @@ export const usersApi = {
   activateAccount: (id: string): Promise<User> => {
     return apiPatch<User>(`/api/users/${id}/activate`, {})
   },
+
+  // Récupérer l'historique des modifications
+  getHistory: (id: string): Promise<PaginatedResponse<any>> => {
+    return apiGet<PaginatedResponse<any>>(`/api/users/${id}/history`)
+  },
 }

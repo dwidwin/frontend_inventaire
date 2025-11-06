@@ -346,7 +346,12 @@ export interface AuditLog extends BaseEntity {
   action: string
   entityName: string
   entityId?: string
-  details?: Record<string, any>
+  details?: {
+    changes?: string[]
+    changeDetails?: Record<string, { from: any; to: any }>
+    before?: Record<string, any>
+    after?: Record<string, any>
+  }
   ip?: string
   userAgent?: string
 }

@@ -112,8 +112,46 @@
                 </div>
               </div>
 
-              <!-- Modification -->
-              <div v-if="user.updatedAt && user.updatedAt !== user.createdAt" class="flex items-start space-x-3">
+              <!-- Modifications -->
+              <div v-if="modificationHistory && modificationHistory.length > 0" class="space-y-2">
+                <div
+                  v-for="(modification, index) in modificationHistory"
+                  :key="modification.id || index"
+                  class="flex items-start space-x-3"
+                >
+                  <div class="flex-shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                      <PencilIcon class="w-4 h-4 text-blue-600" />
+                    </div>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900">Modifié</p>
+                    <p class="text-sm text-gray-600">
+                      <span v-if="modification.actorUser">
+                        par <span class="font-medium">{{ modification.actorUser.username || modification.actorUser.email }}</span>
+                      </span>
+                      <span v-else-if="modification.actorUserId" class="text-gray-400">
+                        par un utilisateur
+                      </span>
+                      <span v-else class="text-gray-400">par un utilisateur inconnu</span>
+                      <span v-if="modification.createdAt" class="ml-2">
+                        le <span class="font-medium">{{ formatDateTimeWithDay(modification.createdAt) }}</span>
+                      </span>
+                    </p>
+                    <!-- Détails des changements -->
+                    <div v-if="modification.details?.changes" class="mt-2 pl-4 border-l-2 border-blue-200">
+                      <ul class="text-xs text-gray-600 space-y-1">
+                        <li v-for="(change, idx) in modification.details.changes" :key="idx" class="flex items-start">
+                          <span class="text-blue-600 mr-1">•</span>
+                          <span>{{ change }}</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Fallback si pas d'historique détaillé mais updatedAt existe -->
+              <div v-else-if="user.updatedAt && user.updatedAt !== user.createdAt" class="flex items-start space-x-3">
                 <div class="flex-shrink-0">
                   <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                     <PencilIcon class="w-4 h-4 text-blue-600" />
@@ -184,11 +222,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { XMarkIcon, PlusIcon, PencilIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import { useUpdateUser } from '@/composables/useUsers'
 import { formatDateTimeWithDay } from '@/utils/formatDate'
-import type { User, UpdateUserDto } from '@/types'
+import { usersApi } from '@/api/endpoints/users'
+import type { User, UpdateUserDto, AuditLog } from '@/types'
 
 interface Props {
   user: User
@@ -213,6 +252,27 @@ const form = ref<UpdateUserDto>({
 const errors = ref<Record<string, string>>({})
 const error = ref('')
 const isSubmitting = ref(false)
+const modificationHistory = ref<AuditLog[]>([])
+const isLoadingHistory = ref(false)
+
+// Charger l'historique des modifications
+const loadModificationHistory = async () => {
+  if (!props.user?.id) return
+  
+  isLoadingHistory.value = true
+  try {
+    const response = await usersApi.getHistory(props.user.id)
+    // Filtrer uniquement les modifications (users.update et users.activate)
+    modificationHistory.value = response.data.filter(
+      (log: AuditLog) => log.action === 'users.update' || log.action === 'users.activate'
+    )
+  } catch (err) {
+    console.error('Erreur lors du chargement de l\'historique:', err)
+    modificationHistory.value = []
+  } finally {
+    isLoadingHistory.value = false
+  }
+}
 
 // Mettre à jour le formulaire si l'utilisateur change
 watch(() => props.user, (newUser) => {
@@ -223,8 +283,16 @@ watch(() => props.user, (newUser) => {
       role: newUser.role,
       isActive: newUser.isActive,
     }
+    // Charger l'historique quand l'utilisateur change
+    loadModificationHistory()
   }
 }, { immediate: true })
+
+onMounted(() => {
+  if (props.user?.id) {
+    loadModificationHistory()
+  }
+})
 
 const handleClose = () => {
   emit('close')
@@ -263,6 +331,8 @@ const handleSubmit = async () => {
       },
     })
     emit('updated')
+    // Recharger l'historique après modification
+    await loadModificationHistory()
     handleClose()
   } catch (err: any) {
     error.value = err?.response?.data?.message || err?.message || 'Une erreur est survenue lors de la modification'
