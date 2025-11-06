@@ -65,7 +65,24 @@
           :color="item.endAt ? 'gray' : 'success'"
         />
       </template>
+      
+      <template #cell-createdBy="{ item }">
+        <div v-if="item.createdBy" class="text-sm text-gray-900">
+          {{ item.createdBy.username }}
+        </div>
+        <span v-else class="text-sm text-gray-500">-</span>
+        <div v-if="item.createdAt" class="text-xs text-gray-500">
+          {{ formatDate(item.createdAt) }}
+        </div>
+      </template>
     </DataTable>
+
+    <!-- Modal de création -->
+    <CreateAssignmentModal
+      v-if="showCreateModal"
+      @close="showCreateModal = false"
+      @created="handleAssignmentCreated"
+    />
   </div>
 </template>
 
@@ -73,14 +90,16 @@
 import { ref } from 'vue'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import CreateAssignmentModal from '@/components/modals/CreateAssignmentModal.vue'
 import { formatDate } from '@/utils/formatDate'
 import type { Assignment } from '@/types'
 
 const authStore = useAuthStore()
+const queryClient = useQueryClient()
 
 // Queries
 const { data: assignments, isLoading } = useQuery({
@@ -99,6 +118,7 @@ const columns = [
   { key: 'startAt', label: 'Début', sortable: true },
   { key: 'endAt', label: 'Fin', sortable: true },
   { key: 'status', label: 'Statut', sortable: true },
+  { key: 'createdBy', label: 'Créé par', sortable: true },
 ]
 
 // Actions
@@ -112,5 +132,10 @@ const handleDelete = (assignment: Assignment) => {
   selectedAssignment.value = assignment
   // TODO: Ouvrir modal de confirmation
   console.log('Delete assignment:', assignment)
+}
+
+const handleAssignmentCreated = () => {
+  // Invalider les queries pour rafraîchir la liste
+  queryClient.invalidateQueries({ queryKey: ['assignments'] })
 }
 </script>

@@ -180,6 +180,8 @@ export interface Assignment extends BaseEntity {
   startAt: string
   endAt?: string
   notes?: string
+  createdBy?: User
+  updatedBy?: User
 }
 
 export interface CreateAssignmentDto {
