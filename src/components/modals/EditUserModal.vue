@@ -232,7 +232,7 @@ const handleSubmit = async () => {
       data: {
         username: form.value.username.trim(),
         email: form.value.email.trim(),
-        role: form.value.role,
+        role: form.value.role?.toLowerCase() as 'user' | 'manager' | 'admin',
         isActive: form.value.isActive,
       },
     })
