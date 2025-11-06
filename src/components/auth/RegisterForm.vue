@@ -44,6 +44,7 @@
             name="password"
             type="password"
             required
+            @input="validateConfirmPassword"
             class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
             placeholder="Mot de passe"
             :class="{ 'border-danger-500': errors.password }"
@@ -64,9 +65,14 @@
             name="confirmPassword"
             type="password"
             required
-            class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+            @blur="validateConfirmPassword"
+            @input="validateConfirmPassword"
+            class="appearance-none rounded-md relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
             placeholder="Confirmer le mot de passe"
-            :class="{ 'border-danger-500': errors.confirmPassword }"
+            :class="{
+              'border-danger-500': showConfirmPasswordError,
+              'border-gray-300': !showConfirmPasswordError
+            }"
           />
           <p v-if="errors.confirmPassword" class="mt-1 text-sm text-danger-600">
             {{ errors.confirmPassword }}
@@ -110,7 +116,7 @@
       <div class="mt-6">
         <button
           type="submit"
-          :disabled="isLoading || successMessage"
+          :disabled="isLoading || successMessage || !isFormValid"
           class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span v-if="isLoading" class="absolute left-0 inset-y-0 flex items-center pl-3">
@@ -137,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { authApi } from '@/api/endpoints/auth'
 import type { RegisterDto } from '@/types'
 
@@ -162,6 +168,41 @@ const errors = reactive({
 const isLoading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const showConfirmPasswordError = ref(false)
+
+// Validation en temps réel du formulaire
+const isFormValid = computed(() => {
+  return (
+    form.username.trim().length >= 3 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) &&
+    form.password.length >= 8 &&
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(form.password) &&
+    form.confirmPassword === form.password &&
+    !errors.username &&
+    !errors.email &&
+    !errors.password &&
+    !errors.confirmPassword
+  )
+})
+
+// Validation de la confirmation du mot de passe en temps réel
+const validateConfirmPassword = () => {
+  if (form.confirmPassword && form.password) {
+    if (form.confirmPassword !== form.password) {
+      showConfirmPasswordError.value = true
+      errors.confirmPassword = 'Les mots de passe ne correspondent pas'
+    } else {
+      showConfirmPasswordError.value = false
+      errors.confirmPassword = ''
+    }
+  } else if (form.confirmPassword && !form.password) {
+    showConfirmPasswordError.value = true
+    errors.confirmPassword = 'Veuillez d\'abord saisir le mot de passe'
+  } else {
+    showConfirmPasswordError.value = false
+    errors.confirmPassword = ''
+  }
+}
 
 const validateForm = (): boolean => {
   let isValid = true
