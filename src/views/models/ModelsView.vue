@@ -87,7 +87,6 @@ const selectedModel = ref<MaterialModel | null>(null)
 const modelColumns = [
   { key: 'name', label: 'Nom', sortable: true },
   { key: 'category', label: 'Catégorie', sortable: true },
-  { key: 'referenceFournisseur', label: 'Référence', sortable: true },
   { key: 'mainImageUrl', label: 'Image', sortable: false },
   { key: 'createdAt', label: 'Créé le', sortable: true },
 ]
