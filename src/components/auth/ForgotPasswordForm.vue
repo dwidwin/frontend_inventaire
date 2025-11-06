@@ -36,7 +36,7 @@
       <div class="mt-6">
         <button
           type="submit"
-          :disabled="isLoading || successMessage"
+          :disabled="isLoading || successMessage || !isValidEmail"
           class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span v-if="isLoading" class="absolute left-0 inset-y-0 flex items-center pl-3">
@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { authApi } from '@/api/endpoints/auth'
 
 defineEmits<{
@@ -74,6 +74,12 @@ const email = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+
+const isValidEmail = computed(() => {
+  if (!email.value) return false
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email.value)
+})
 
 const handleSubmit = async () => {
   if (!email.value) {
