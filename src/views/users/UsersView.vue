@@ -104,7 +104,13 @@ const selectedUser = ref<User | null>(null)
 
 // Queries
 const { data: usersResponse, isLoading } = useUsers(
-  computed(() => ({ pendingOnly: pendingOnly.value }))
+  computed(() => {
+    const params: any = {}
+    if (pendingOnly.value) {
+      params.pendingOnly = true
+    }
+    return params
+  })
 )
 
 const usersData = computed(() => usersResponse.value?.data || [])
