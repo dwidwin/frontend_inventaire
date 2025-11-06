@@ -1,11 +1,12 @@
+import { toValue } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { usersApi } from '@/api/endpoints'
 import type { User, CreateUserDto, UpdateUserDto, SearchParams } from '@/types'
 
 export const useUsers = (params?: SearchParams) => {
   return useQuery({
-    queryKey: ['users', params],
-    queryFn: () => usersApi.list(params),
+    queryKey: ['users', toValue(params)],
+    queryFn: () => usersApi.list(toValue(params)),
   })
 }
 
