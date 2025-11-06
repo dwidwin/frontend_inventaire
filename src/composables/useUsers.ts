@@ -51,3 +51,14 @@ export const useDeleteUser = () => {
     },
   })
 }
+
+export const useActivateAccount = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => usersApi.activateAccount(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
+}

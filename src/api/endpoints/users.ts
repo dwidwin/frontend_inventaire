@@ -26,4 +26,9 @@ export const usersApi = {
   delete: (id: string): Promise<void> => {
     return apiDelete<void>(`/api/users/${id}`)
   },
+
+  // Activer un compte utilisateur
+  activateAccount: (id: string): Promise<User> => {
+    return apiPatch<User>(`/api/users/${id}/activate`, {})
+  },
 }

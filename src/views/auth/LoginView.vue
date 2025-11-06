@@ -10,7 +10,8 @@
         </p>
       </div>
       
-      <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
+      <!-- Formulaire de connexion -->
+      <form v-if="view === 'login'" class="mt-8 space-y-6" @submit.prevent="handleSubmit">
         <div class="rounded-md shadow-sm -space-y-px">
           <div>
             <label for="username" class="sr-only">Nom d'utilisateur</label>
@@ -78,7 +79,35 @@
             {{ isLoading ? 'Connexion...' : 'Se connecter' }}
           </button>
         </div>
+
+        <div class="flex items-center justify-between">
+          <div class="text-sm">
+            <button
+              type="button"
+              @click="view = 'forgot-password'"
+              class="font-medium text-primary-600 hover:text-primary-500"
+            >
+              J'ai oublié mon mot de passe
+            </button>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button
+            type="button"
+            @click="view = 'register'"
+            class="text-sm font-medium text-primary-600 hover:text-primary-500"
+          >
+            Je crée mon compte
+          </button>
+        </div>
       </form>
+
+      <!-- Formulaire mot de passe oublié -->
+      <ForgotPasswordForm v-else-if="view === 'forgot-password'" @back="view = 'login'" />
+
+      <!-- Formulaire d'inscription -->
+      <RegisterForm v-else-if="view === 'register'" @back="view = 'login'" />
     </div>
   </div>
 </template>
@@ -89,9 +118,14 @@ import { useRouter } from 'vue-router'
 import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 import type { LoginDto } from '@/types'
+import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm.vue'
+import RegisterForm from '@/components/auth/RegisterForm.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Vue actuelle : 'login', 'forgot-password', 'register'
+const view = ref<'login' | 'forgot-password' | 'register'>('login')
 
 // État du formulaire
 const form = reactive<LoginDto>({

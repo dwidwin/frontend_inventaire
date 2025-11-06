@@ -20,6 +20,15 @@ const router = createRouter({
         { path: '', name: 'Login', component: LoginView }
       ]
     },
+    // Route de réinitialisation de mot de passe
+    {
+      path: '/reset-password/:token',
+      component: () => import('@/layouts/AuthLayout.vue'),
+      meta: { requiresAuth: false },
+      children: [
+        { path: '', name: 'ResetPassword', component: () => import('@/views/auth/ResetPasswordView.vue') }
+      ]
+    },
 
     // Main layout pour toutes les routes protégées
     {
