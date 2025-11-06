@@ -80,19 +80,14 @@
           </button>
         </div>
 
-        <div class="flex items-center justify-between">
-          <div class="text-sm">
-            <button
-              type="button"
-              @click="view = 'forgot-password'"
-              class="font-medium text-primary-600 hover:text-primary-500"
-            >
-              J'ai oublié mon mot de passe
-            </button>
-          </div>
-        </div>
-
-        <div class="text-center">
+        <div class="flex items-center justify-center gap-4">
+          <button
+            type="button"
+            @click="view = 'forgot-password'"
+            class="text-sm font-medium text-primary-600 hover:text-primary-500"
+          >
+            J'ai oublié mon mot de passe
+          </button>
           <button
             type="button"
             @click="view = 'register'"
