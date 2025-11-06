@@ -41,6 +41,15 @@
         @delete="handleDelete"
       />
     </div>
+
+    <!-- Modal de formulaire -->
+    <TeamFormModal
+      v-if="showCreateModal || selectedTeam"
+      :team="selectedTeam || undefined"
+      @close="handleCloseModal"
+      @created="handleTeamCreated"
+      @updated="handleTeamUpdated"
+    />
   </div>
 </template>
 
@@ -51,12 +60,13 @@ import { useAuthStore } from '@/stores/auth'
 import { useQuery } from '@tanstack/vue-query'
 import { teamsApi } from '@/api/endpoints/teams'
 import TeamCard from '@/components/TeamCard.vue'
+import TeamFormModal from '@/components/modals/TeamFormModal.vue'
 import type { Team } from '@/types'
 
 const authStore = useAuthStore()
 
 // Queries
-const { data: teams, isLoading } = useQuery({
+const { data: teams, isLoading, refetch } = useQuery({
   queryKey: ['teams'],
   queryFn: () => teamsApi.list(),
 })
@@ -68,13 +78,25 @@ const selectedTeam = ref<Team | null>(null)
 // Actions
 const handleEdit = (team: Team) => {
   selectedTeam.value = team
-  // TODO: Ouvrir modal d'édition
-  console.log('Edit team:', team)
+  showCreateModal.value = false
 }
 
 const handleDelete = (team: Team) => {
   selectedTeam.value = team
   // TODO: Ouvrir modal de confirmation
   console.log('Delete team:', team)
+}
+
+const handleCloseModal = () => {
+  showCreateModal.value = false
+  selectedTeam.value = null
+}
+
+const handleTeamCreated = () => {
+  refetch()
+}
+
+const handleTeamUpdated = () => {
+  refetch()
 }
 </script>
