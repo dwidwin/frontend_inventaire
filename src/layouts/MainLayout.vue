@@ -18,12 +18,18 @@
       </div>
       
       <nav class="mt-5 px-2 space-y-1">
-        <NavigationItem
-          v-for="item in navigationItems"
-          :key="item.name"
-          :item="item"
-          @click="sidebarOpen = false"
-        />
+        <template v-for="item in navigationItems" :key="item.name">
+          <NavigationItemWithDropdown
+            v-if="item.subItems"
+            :item="item"
+            @click="sidebarOpen = false"
+          />
+          <NavigationItem
+            v-else
+            :item="item"
+            @click="sidebarOpen = false"
+          />
+        </template>
       </nav>
     </div>
 
@@ -114,6 +120,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { Bars3Icon, XMarkIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 import NavigationItem from '@/components/NavigationItem.vue'
+import NavigationItemWithDropdown from '@/components/NavigationItemWithDropdown.vue'
 import NotificationBell from '@/components/NotificationBell.vue'
 
 const router = useRouter()
@@ -144,9 +151,19 @@ const navigationItems = computed(() => {
 
   // Items accessibles aux admins
   if (authStore.isAdmin) {
-    items.push(
-      { name: 'Paramètres', href: '/settings', icon: 'Cog6ToothIcon' }
-    )
+    items.push({
+      name: 'Paramètres',
+      href: '/settings',
+      icon: 'Cog6ToothIcon',
+      subItems: [
+        { name: 'categories', label: 'Catégories', href: '/categories' },
+        { name: 'models', label: 'Modèles', href: '/models' },
+        { name: 'items', label: 'Items', href: '/items' },
+        { name: 'transactions', label: 'Transactions', href: '/transactions' },
+        { name: 'statuses', label: 'Statuts', href: '/statuses' },
+        { name: 'users', label: 'Gestion des utilisateurs', href: '/users' },
+      ]
+    })
   }
 
   return items
@@ -154,7 +171,26 @@ const navigationItems = computed(() => {
 
 // Titre de la page actuelle
 const currentPageTitle = computed(() => {
-  const item = navigationItems.value.find(item => item.href === route.path)
+  // Vérifier d'abord les sous-items
+  for (const item of navigationItems.value) {
+    if ('subItems' in item && item.subItems) {
+      const subItem = item.subItems.find(sub => {
+        const basePath = sub.href.split('?')[0]
+        return route.path.startsWith(basePath)
+      })
+      if (subItem) {
+        return subItem.label
+      }
+    }
+  }
+  
+  // Sinon, chercher l'item principal
+  const item = navigationItems.value.find(item => {
+    if (item.href === '/') {
+      return route.path === '/'
+    }
+    return route.path.startsWith(item.href)
+  })
   return item?.name || 'Inventaire Club'
 })
 

@@ -437,7 +437,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, unref } from 'vue'
+import { ref, computed, unref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { PlusIcon, CurrencyDollarIcon } from '@heroicons/vue/24/outline'
 import { useCategories } from '@/composables/useCategories'
 import { useUsers } from '@/composables/useUsers'
@@ -463,6 +464,9 @@ import type { Category, MaterialModel, Transaction, User, Item, Status, StatusGr
 import { StatusGroup as StatusGroupEnum } from '@/types'
 import { formatDate } from '@/utils/formatDate'
 
+const route = useRoute()
+const router = useRouter()
+
 // Tabs
 const tabs = [
   { name: 'categories', label: 'Catégories' },
@@ -473,7 +477,28 @@ const tabs = [
   { name: 'users', label: 'Gestion des utilisateurs' },
 ]
 
-const activeTab = ref('categories')
+// Initialiser l'onglet actif depuis la query string ou utiliser 'categories' par défaut
+const getInitialTab = () => {
+  const tabFromQuery = route.query.tab as string
+  if (tabFromQuery && tabs.some(tab => tab.name === tabFromQuery)) {
+    return tabFromQuery
+  }
+  return 'categories'
+}
+
+const activeTab = ref(getInitialTab())
+
+// Mettre à jour l'URL quand l'onglet change
+watch(activeTab, (newTab) => {
+  router.replace({ query: { ...route.query, tab: newTab } })
+})
+
+// Gérer les changements de query string
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && tabs.some(tab => tab.name === newTab)) {
+    activeTab.value = newTab as string
+  }
+})
 
 // Queries
 const { data: categories, isLoading: isLoadingCategories } = useCategories()
