@@ -192,7 +192,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { useItems } from '@/composables/useItems'
 import { useUsers } from '@/composables/useUsers'
@@ -210,16 +210,26 @@ const emit = defineEmits<{
 
 const queryClient = useQueryClient()
 
+// État local - doit être défini avant les queries qui l'utilisent
+const assignmentType = ref<'user' | 'team' | ''>('')
+const form = ref({
+  itemId: '',
+  userId: '',
+  teamId: '',
+  notes: '',
+})
+
 // Queries
 const { data: items, isLoading: isLoadingItems } = useItems()
 const { data: users, isLoading: isLoadingUsers } = useUsers()
 const { data: teams, isLoading: isLoadingTeams } = useTeams()
 
 // Vérifier les affectations actives pour l'item sélectionné
+const itemId = computed(() => form.value.itemId)
 const { data: itemAssignments } = useQuery({
-  queryKey: ['assignments', 'item', () => form.value.itemId],
-  queryFn: () => assignmentsApi.getByItem(form.value.itemId),
-  enabled: computed(() => !!form.value.itemId),
+  queryKey: ['assignments', 'item', itemId],
+  queryFn: () => assignmentsApi.getByItem(itemId.value),
+  enabled: computed(() => !!itemId.value),
 })
 
 const currentActiveAssignment = computed<Assignment | undefined>(() => {
@@ -232,14 +242,6 @@ const hasActiveAssignment = computed(() => {
 
 const createAssignmentMutation = useCreateAssignment()
 
-// État local
-const assignmentType = ref<'user' | 'team' | ''>('')
-const form = ref({
-  itemId: '',
-  userId: '',
-  teamId: '',
-  notes: '',
-})
 const error = ref('')
 const isSubmitting = ref(false)
 
