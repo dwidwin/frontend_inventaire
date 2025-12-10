@@ -514,7 +514,7 @@ watch([() => props.item, activeItemStatuses, () => statuses.value], ([item, item
     
     // Pré-remplir les informations de l'item
     form.item.codeBarre = item.codeBarre || ''
-    form.item.locationId = item.locationId || ''
+    form.item.locationId = item.location?.id || item.locationId || ''
     
     // Récupérer les clés des statuts actifs
     if (itemStatuses && itemStatuses.length > 0) {
