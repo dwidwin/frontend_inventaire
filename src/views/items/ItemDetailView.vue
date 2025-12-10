@@ -286,7 +286,6 @@ import {
   MapPinIcon,
   CurrencyDollarIcon
 } from '@heroicons/vue/24/outline'
-import { computed } from 'vue'
 
 const authStore = useAuthStore()
 const queryClient = useQueryClient()
