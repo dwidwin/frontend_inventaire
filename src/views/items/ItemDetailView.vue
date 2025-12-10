@@ -51,7 +51,19 @@
             <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <dt class="text-sm font-medium text-gray-500">Modèle</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ item?.model?.name }}</dd>
+                <dd class="mt-1">
+                  <RouterLink
+                    v-if="item?.model?.id"
+                    :to="`/models/${item.model.id}`"
+                    class="text-primary-600 hover:text-primary-900 font-medium"
+                  >
+                    {{ item?.model?.name }}
+                  </RouterLink>
+                  <span v-else class="text-sm text-gray-900">{{ item?.model?.name }}</span>
+                </dd>
+                <dd v-if="modelItemsCount && modelItemsCount > 1" class="mt-1 text-xs text-gray-500">
+                  {{ modelItemsCount - 1 }} autre{{ (modelItemsCount - 1) > 1 ? 's' : '' }} item{{ (modelItemsCount - 1) > 1 ? 's' : '' }} partage{{ (modelItemsCount - 1) > 1 ? 'nt' : '' }} ce modèle
+                </dd>
               </div>
               <div>
                 <dt class="text-sm font-medium text-gray-500">Catégorie</dt>
@@ -264,8 +276,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useModelItemsCount } from '@/composables/useMaterialModels'
 import { useItem, useItemHistory } from '@/composables/useItems'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
@@ -296,6 +309,10 @@ const itemId = route.params.id as string
 // Queries
 const { data: item, isLoading: isLoadingItem } = useItem(itemId)
 const { data: allLocations } = useLocations()
+
+// Récupérer le nombre d'items du modèle
+const modelId = computed(() => item.value?.model?.id || '')
+const { data: modelItemsCount } = useModelItemsCount(modelId)
 
 // Historique complet de l'item (statuts, affectations, changements d'emplacement)
 const { data: itemHistory, isLoading: isLoadingHistory } = useItemHistory(itemId)

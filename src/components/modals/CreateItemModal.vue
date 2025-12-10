@@ -57,33 +57,210 @@
           <div v-if="currentStep === 1" class="space-y-4">
             <h4 class="text-md font-medium text-gray-900 mb-4">Informations du modèle</h4>
             
-            <!-- En mode édition, afficher les infos en lecture seule -->
+            <!-- En mode édition, permettre de changer le modèle -->
             <template v-if="isEditMode && item?.model">
-              <div class="space-y-3 p-4 bg-gray-50 rounded-lg">
+              <div class="space-y-4">
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p class="text-sm text-blue-800 mb-3">
+                    <strong>Modèle actuel :</strong> {{ item.model.name }}
+                  </p>
+                  <p class="text-xs text-blue-600">
+                    Vous pouvez changer le modèle de cet item. Ce changement n'affectera que cet item.
+                  </p>
+                </div>
+                
+                <!-- Recherche de modèle -->
                 <div>
-                  <label class="form-label">Nom du modèle</label>
-                  <div class="text-sm text-gray-900">{{ item.model.name }}</div>
+                  <label for="modelSearch" class="form-label">
+                    Rechercher un modèle existant
+                  </label>
+                  <div class="relative">
+                    <MagnifyingGlassIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      id="modelSearch"
+                      v-model="modelSearchQuery"
+                      type="text"
+                      class="form-input pl-10"
+                      placeholder="Tapez pour rechercher un modèle..."
+                      @input="createNewModel = false; selectedModelId = null"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label class="form-label">Catégorie</label>
-                  <div class="text-sm text-gray-900">{{ item.model.category?.name }}</div>
+
+                <!-- Résultats de recherche -->
+                <div v-if="modelSearchQuery && searchResults && searchResults.length > 0" class="space-y-2 max-h-60 overflow-y-auto">
+                  <div
+                    v-for="model in searchResults"
+                    :key="model.id"
+                    @click="selectExistingModel(model.id)"
+                    :class="[
+                      'p-3 border rounded-lg cursor-pointer transition-colors',
+                      selectedModelId === model.id
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    ]"
+                  >
+                    <div class="font-medium text-gray-900">{{ model.name }}</div>
+                    <div class="text-sm text-gray-600">{{ model.category?.name }}</div>
+                    <div v-if="model.referenceFournisseur" class="text-xs text-gray-500">
+                      Ref: {{ model.referenceFournisseur }}
+                    </div>
+                  </div>
                 </div>
-                <div v-if="item.model.referenceFournisseur">
-                  <label class="form-label">Référence fournisseur</label>
-                  <div class="text-sm text-gray-900">{{ item.model.referenceFournisseur }}</div>
+
+                <div class="flex items-center space-x-2">
+                  <div class="flex-1 border-t border-gray-300"></div>
+                  <span class="text-sm text-gray-500">ou</span>
+                  <div class="flex-1 border-t border-gray-300"></div>
                 </div>
-                <div v-if="item.model.description">
-                  <label class="form-label">Description</label>
-                  <div class="text-sm text-gray-900">{{ item.model.description }}</div>
+
+                <button
+                  type="button"
+                  @click="createNewModel = true; selectedModelId = null; modelSearchQuery = ''"
+                  :class="[
+                    'w-full p-3 border rounded-lg text-left transition-colors',
+                    createNewModel
+                      ? 'border-primary-500 bg-primary-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  ]"
+                >
+                  <div class="font-medium text-gray-900">Créer un nouveau modèle</div>
+                  <div class="text-sm text-gray-600">Définir un nouveau modèle pour cet item</div>
+                </button>
+
+                <!-- Formulaire de création de modèle -->
+                <div v-if="createNewModel" class="space-y-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <label for="modelName" class="form-label">
+                      Nom du modèle <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="modelName"
+                      v-model="form.model.name"
+                      type="text"
+                      required
+                      class="form-input"
+                      placeholder="Ex: Crosse 95 cm"
+                    />
+                  </div>
+
+                  <div>
+                    <label for="categoryId" class="form-label">
+                      Catégorie <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="categoryId"
+                      v-model="form.model.categoryId"
+                      required
+                      class="form-select"
+                    >
+                      <option value="">Sélectionner une catégorie</option>
+                      <option
+                        v-for="item in categoriesWithIndent"
+                        :key="item.category.id"
+                        :value="item.category.id"
+                      >
+                        {{ item.displayText }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label for="referenceFournisseur" class="form-label">
+                      Référence fournisseur
+                    </label>
+                    <input
+                      id="referenceFournisseur"
+                      v-model="form.model.referenceFournisseur"
+                      type="text"
+                      class="form-input"
+                      placeholder="Ex: REF-12345"
+                    />
+                  </div>
+
+                  <div>
+                    <label for="description" class="form-label">
+                      Description
+                    </label>
+                    <textarea
+                      id="description"
+                      v-model="form.model.description"
+                      rows="3"
+                      class="form-textarea"
+                      placeholder="Description du modèle..."
+                    ></textarea>
+                  </div>
                 </div>
               </div>
-              <p class="text-sm text-gray-500 mt-2">
-                Le modèle ne peut pas être modifié car il est partagé par plusieurs items.
-              </p>
             </template>
 
-            <!-- En mode création, afficher le formulaire -->
+            <!-- En mode création, afficher le formulaire avec recherche -->
             <template v-else>
+              <!-- Recherche de modèle -->
+              <div>
+                <label for="modelSearch" class="form-label">
+                  Rechercher un modèle existant
+                </label>
+                <div class="relative">
+                  <MagnifyingGlassIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    id="modelSearch"
+                    v-model="modelSearchQuery"
+                    type="text"
+                    class="form-input pl-10"
+                    placeholder="Tapez pour rechercher un modèle..."
+                    @input="createNewModel = false; selectedModelId = null"
+                  />
+                </div>
+              </div>
+
+              <!-- Résultats de recherche -->
+              <div v-if="modelSearchQuery && searchResults && searchResults.length > 0" class="space-y-2 max-h-60 overflow-y-auto">
+                <div
+                  v-for="model in searchResults"
+                  :key="model.id"
+                  @click="selectExistingModel(model.id)"
+                  :class="[
+                    'p-3 border rounded-lg cursor-pointer transition-colors',
+                    selectedModelId === model.id
+                      ? 'border-primary-500 bg-primary-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  ]"
+                >
+                  <div class="font-medium text-gray-900">{{ model.name }}</div>
+                  <div class="text-sm text-gray-600">{{ model.category?.name }}</div>
+                  <div v-if="model.referenceFournisseur" class="text-xs text-gray-500">
+                    Ref: {{ model.referenceFournisseur }}
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="modelSearchQuery && (!searchResults || searchResults.length === 0)" class="p-4 bg-gray-50 rounded-lg text-center text-sm text-gray-500">
+                Aucun modèle trouvé. Créez-en un nouveau ci-dessous.
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <div class="flex-1 border-t border-gray-300"></div>
+                <span class="text-sm text-gray-500">ou</span>
+                <div class="flex-1 border-t border-gray-300"></div>
+              </div>
+
+              <button
+                type="button"
+                @click="createNewModel = true; selectedModelId = null; modelSearchQuery = ''"
+                :class="[
+                  'w-full p-3 border rounded-lg text-left transition-colors',
+                  createNewModel
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                ]"
+              >
+                <div class="font-medium text-gray-900">Créer un nouveau modèle</div>
+                <div class="text-sm text-gray-600">Définir un nouveau modèle</div>
+              </button>
+
+              <!-- Formulaire de création de modèle -->
+              <div v-if="createNewModel || (!modelSearchQuery && !selectedModelId)" class="space-y-4 p-4 bg-gray-50 rounded-lg">
               <!-- Nom du modèle -->
               <div>
                 <label for="modelName" class="form-label">
@@ -151,6 +328,7 @@
                   class="form-textarea"
                   placeholder="Description du modèle..."
                 ></textarea>
+              </div>
               </div>
             </template>
           </div>
@@ -372,11 +550,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import { XMarkIcon, ChevronRightIcon, CameraIcon, QrCodeIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, ChevronRightIcon, CameraIcon, QrCodeIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { useCategories } from '@/composables/useCategories'
 import { useStatuses } from '@/composables/useStatuses'
 import { useLocations } from '@/composables/useLocations'
-import { useCreateMaterialModel } from '@/composables/useMaterialModels'
+import { useCreateMaterialModel, useSearchMaterialModels } from '@/composables/useMaterialModels'
 import { useCreateItem, useUpdateItem } from '@/composables/useItems'
 import { useSetItemStatus } from '@/composables/useStatuses'
 import { statusesApi } from '@/api/endpoints/statuses'
@@ -392,6 +570,7 @@ import { StatusGroup as StatusGroupEnum } from '@/types'
 
 const props = defineProps<{
   item?: Item
+  preselectedModelId?: string
 }>()
 
 const emit = defineEmits<{ (e: 'close'): void; (e: 'created'): void; (e: 'updated'): void }>()
@@ -468,6 +647,19 @@ const steps = [
   { id: 'photo', name: 'Photo' }
 ]
 
+// État pour la recherche de modèles
+const modelSearchQuery = ref('')
+const selectedModelId = ref<string | null>(props.preselectedModelId || null)
+const createNewModel = ref(false)
+
+// Si un modèle est pré-sélectionné, l'utiliser
+if (props.preselectedModelId && !isEditMode.value) {
+  form.item.modelId = props.preselectedModelId
+}
+
+// Recherche de modèles
+const { data: searchResults } = useSearchMaterialModels(modelSearchQuery)
+
 // Données du formulaire
 const form = reactive({
   model: {
@@ -477,6 +669,7 @@ const form = reactive({
     description: ''
   } as CreateMaterialModelDto,
   item: {
+    modelId: '',
     codeBarre: '',
     statusKey: '', // Gardé pour compatibilité avec l'API legacy
     selectedStatusKeys: [] as string[], // Clés des statuts sélectionnés
@@ -509,8 +702,14 @@ watch(() => props.item, (newItem, oldItem) => {
 // Initialiser le formulaire en mode édition
 watch([() => props.item, activeItemStatuses, () => statuses.value], ([item, itemStatuses, statusList]) => {
   if (isEditMode.value && item) {
-    // En mode édition, commencer à l'étape 2 (Item)
-    currentStep.value = 2
+    // En mode édition, commencer à l'étape 1 (Modèle) pour permettre le changement
+    currentStep.value = 1
+    
+    // Pré-remplir le modèle actuel
+    if (item.model?.id) {
+      selectedModelId.value = item.model.id
+      form.item.modelId = item.model.id
+    }
     
     // Pré-remplir les informations de l'item
     form.item.codeBarre = item.codeBarre || ''
@@ -541,10 +740,23 @@ watch([() => props.item, activeItemStatuses, () => statuses.value], ([item, item
   }
 }, { immediate: true })
 
+// Fonction pour sélectionner un modèle existant
+const selectExistingModel = (modelId: string) => {
+  selectedModelId.value = modelId
+  form.item.modelId = modelId
+  createNewModel.value = false
+}
+
 // Validation
 const canProceed = computed(() => {
-  if (currentStep.value === 1 && !isEditMode.value) {
-    return form.model.name.trim() && form.model.categoryId
+  if (currentStep.value === 1) {
+    if (isEditMode.value) {
+      // En édition, on peut soit sélectionner un modèle existant, soit créer un nouveau
+      return selectedModelId.value !== null || (createNewModel.value && form.model.name.trim() && form.model.categoryId)
+    } else {
+      // En création, on doit soit sélectionner un modèle, soit créer un nouveau
+      return selectedModelId.value !== null || (createNewModel.value && form.model.name.trim() && form.model.categoryId)
+    }
   }
   return true
 })
@@ -611,14 +823,30 @@ const handleSubmit = async () => {
         form.item.statusKey = ''
       }
       
-      // 1. Mettre à jour l'item
+      // 1. Mettre à jour l'item (y compris le modèle si changé)
+      const updateData: any = {
+        locationId: form.item.locationId || undefined,
+        codeBarre: form.item.codeBarre || undefined,
+        etat: form.item.statusKey || undefined
+      }
+      
+      // Si un nouveau modèle a été sélectionné ou créé
+      if (selectedModelId.value && selectedModelId.value !== props.item.model?.id) {
+        updateData.modelId = selectedModelId.value
+      } else if (createNewModel.value && form.model.name.trim() && form.model.categoryId) {
+        // Créer un nouveau modèle
+        const newModel = await createModelMutation.mutateAsync(form.model)
+        updateData.modelId = newModel.id
+        
+        // Uploader la photo du modèle si présente
+        if (form.photos.model) {
+          await uploadsApi.uploadModelImage(newModel.id, form.photos.model.file)
+        }
+      }
+      
       await updateItemMutation.mutateAsync({
         id: props.item.id,
-        data: {
-          locationId: form.item.locationId || undefined,
-          codeBarre: form.item.codeBarre || undefined,
-          etat: form.item.statusKey || undefined
-        }
+        data: updateData
       })
       
       // 2. Uploader la nouvelle photo de l'item si présente
@@ -723,21 +951,30 @@ const handleSubmit = async () => {
     } else {
       // MODE CRÉATION
       
-      // 1. Créer le modèle
-      const model = await createModelMutation.mutateAsync(form.model)
+      let modelId: string
       
-      // 2. Uploader la photo du modèle si présente
-      if (form.photos.model) {
-        await uploadsApi.uploadModelImage(model.id, form.photos.model.file)
+      // 1. Créer ou utiliser le modèle sélectionné
+      if (selectedModelId.value) {
+        // Utiliser le modèle existant
+        modelId = selectedModelId.value
+      } else {
+        // Créer un nouveau modèle
+        const model = await createModelMutation.mutateAsync(form.model)
+        modelId = model.id
+        
+        // Uploader la photo du modèle si présente
+        if (form.photos.model) {
+          await uploadsApi.uploadModelImage(model.id, form.photos.model.file)
+        }
       }
       
-      // 3. Créer l'item
+      // 2. Créer l'item
       // Déterminer le premier statut pour le champ legacy etat
       const firstStatusKey = form.item.selectedStatusKeys.length > 0 
         ? form.item.selectedStatusKeys[0] 
         : ''
       const item = await createItemMutation.mutateAsync({
-        modelId: model.id,
+        modelId: modelId,
         locationId: form.item.locationId || undefined,
         codeBarre: form.item.codeBarre || undefined,
         etat: firstStatusKey || undefined

@@ -42,6 +42,7 @@ const router = createRouter({
         { path: 'items/:id', name: 'ItemDetail', component: () => import('@/views/items/ItemDetailView.vue') },
         { path: 'categories', name: 'Categories', component: () => import('@/views/categories/CategoriesView.vue'), meta: { requiresAdmin: true } },
         { path: 'models', name: 'Models', component: () => import('@/views/models/ModelsView.vue'), meta: { requiresAdmin: true } },
+        { path: 'models/:id', name: 'ModelDetail', component: () => import('@/views/models/ModelDetailView.vue'), meta: { requiresAdmin: true } },
         { path: 'statuses', name: 'Statuses', component: () => import('@/views/statuses/StatusesView.vue'), meta: { requiresAdmin: true } },
         { path: 'locations', name: 'Locations', component: () => import('@/views/locations/LocationsView.vue'), meta: { requiresManager: true } },
         { path: 'assignments', name: 'Assignments', component: () => import('@/views/assignments/AssignmentsView.vue'), meta: { requiresManager: true } },

@@ -18,6 +18,34 @@
 
       <!-- Contenu -->
       <div class="px-6 py-4 overflow-y-auto max-h-[calc(95vh-180px)]">
+        <!-- Avertissement sur l'impact -->
+        <div v-if="itemsCount !== undefined && itemsCount > 0" class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3 flex-1">
+              <h3 class="text-sm font-medium text-yellow-800">
+                Ce modèle est utilisé par {{ itemsCount }} item{{ itemsCount > 1 ? 's' : '' }}
+              </h3>
+              <div class="mt-2 text-sm text-yellow-700">
+                <p>Les modifications que vous apportez à ce modèle affecteront tous les items qui l'utilisent.</p>
+              </div>
+              <div class="mt-3">
+                <button
+                  type="button"
+                  @click="viewModelItems"
+                  class="text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
+                >
+                  Voir tous les items utilisant ce modèle →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <form @submit.prevent="handleSubmit">
           <!-- Nom -->
           <div class="mb-4">
@@ -120,10 +148,11 @@
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
-import { useUpdateMaterialModel } from '@/composables/useMaterialModels'
+import { useUpdateMaterialModel, useMaterialModel, useModelItemsCount } from '@/composables/useMaterialModels'
 import { useCategories } from '@/composables/useCategories'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import EntityHistory from '@/components/EntityHistory.vue'
+import { useRouter } from 'vue-router'
 import type { MaterialModel, UpdateMaterialModelDto } from '@/types'
 
 interface Props {
@@ -137,10 +166,21 @@ const emit = defineEmits<{
   updated: []
 }>()
 
+const router = useRouter()
 const { data: categories } = useCategories()
 const categoriesWithIndent = computed(() => getCategoriesWithIndent(categories.value))
 
 const updateModelMutation = useUpdateMaterialModel()
+
+// Récupérer le nombre d'items utilisant ce modèle
+const { data: modelData } = useMaterialModel(props.model.id)
+const { data: itemsCount } = useModelItemsCount(props.model.id)
+
+// Fonction pour voir les items du modèle
+const viewModelItems = () => {
+  handleClose()
+  router.push(`/models/${props.model.id}`)
+}
 
 const form = ref<UpdateMaterialModelDto>({
   name: props.model.name,

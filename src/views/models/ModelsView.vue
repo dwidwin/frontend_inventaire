@@ -26,8 +26,23 @@
       @edit="handleEditModel"
       @delete="handleDeleteModel"
     >
+      <template #cell-name="{ item }">
+        <RouterLink
+          :to="`/models/${item.id}`"
+          class="text-primary-600 hover:text-primary-900 font-medium"
+        >
+          {{ item.name }}
+        </RouterLink>
+      </template>
+
       <template #cell-category="{ item }">
         <span class="text-sm text-gray-900">{{ item.category?.name }}</span>
+      </template>
+
+      <template #cell-itemsCount="{ item }">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          {{ itemsCountMap[item.id] || 0 }} item{{ (itemsCountMap[item.id] || 0) > 1 ? 's' : '' }}
+        </span>
       </template>
       
       <template #cell-mainImageUrl="{ item }">
@@ -62,9 +77,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import { PlusIcon } from '@heroicons/vue/24/outline'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueries } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints/materialModels'
 import DataTable from '@/components/DataTable.vue'
 import CreateModelModal from '@/components/modals/CreateModelModal.vue'
@@ -78,6 +94,31 @@ const { data: models, isLoading: isLoadingModels } = useQuery({
   queryFn: () => materialModelsApi.list(),
 })
 
+// Récupérer le count d'items pour chaque modèle
+const itemsCountQueries = useQueries({
+  queries: computed(() => {
+    if (!models.value) return []
+    return models.value.map((model) => ({
+      queryKey: ['material-models', model.id, 'items-count'],
+      queryFn: () => materialModelsApi.getItemsCount(model.id),
+      enabled: !!model.id,
+    }))
+  }),
+})
+
+// Mapper les counts par modèle ID
+const itemsCountMap = computed(() => {
+  const map: Record<string, number> = {}
+  if (!models.value) return map
+  
+  models.value.forEach((model, index) => {
+    const count = itemsCountQueries.value[index]?.data?.value || 0
+    map[model.id] = count
+  })
+  
+  return map
+})
+
 // État local
 const showCreateModelModal = ref(false)
 const showEditModelModal = ref(false)
@@ -87,6 +128,7 @@ const selectedModel = ref<MaterialModel | null>(null)
 const modelColumns = [
   { key: 'name', label: 'Nom', sortable: true },
   { key: 'category', label: 'Catégorie', sortable: true },
+  { key: 'itemsCount', label: 'Items', sortable: true },
   { key: 'mainImageUrl', label: 'Image', sortable: false },
   { key: 'createdAt', label: 'Créé le', sortable: true },
 ]

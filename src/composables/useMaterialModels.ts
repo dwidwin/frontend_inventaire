@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints'
-import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto } from '@/types'
+import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, Item } from '@/types'
+import { computed, ref, type Ref, type ComputedRef } from 'vue'
 
 export const useMaterialModels = () => {
   return useQuery({
@@ -14,6 +15,38 @@ export const useMaterialModel = (id: string) => {
     queryKey: ['material-models', id],
     queryFn: () => materialModelsApi.get(id),
     enabled: !!id,
+  })
+}
+
+export const useSearchMaterialModels = (query: Ref<string> | ComputedRef<string> | string) => {
+  const searchQuery = typeof query === 'string' 
+    ? computed(() => query?.trim() || '')
+    : computed(() => (query.value as string)?.trim() || '')
+  
+  return useQuery({
+    queryKey: computed(() => ['material-models', 'search', searchQuery.value]),
+    queryFn: () => materialModelsApi.search(searchQuery.value),
+    enabled: computed(() => searchQuery.value.length > 0),
+  })
+}
+
+export const useModelItems = (modelId: string) => {
+  return useQuery({
+    queryKey: ['material-models', modelId, 'items'],
+    queryFn: () => materialModelsApi.getItems(modelId),
+    enabled: !!modelId,
+  })
+}
+
+export const useModelItemsCount = (modelId: Ref<string> | ComputedRef<string> | string) => {
+  const id = typeof modelId === 'string' 
+    ? computed(() => modelId)
+    : computed(() => modelId.value as string)
+  
+  return useQuery({
+    queryKey: computed(() => ['material-models', id.value, 'items-count']),
+    queryFn: () => materialModelsApi.getItemsCount(id.value),
+    enabled: computed(() => !!id.value),
   })
 }
 

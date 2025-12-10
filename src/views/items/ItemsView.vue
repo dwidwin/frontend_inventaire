@@ -40,7 +40,10 @@
       @delete="handleDelete"
     >
       <template #cell-model="{ item }">
-        <div class="flex items-center">
+        <RouterLink
+          :to="`/models/${item.model?.id}`"
+          class="flex items-center hover:opacity-80 transition-opacity"
+        >
           <img
             v-if="item.model?.mainImageUrl"
             :src="item.model.mainImageUrl"
@@ -48,10 +51,10 @@
             class="h-10 w-10 rounded-lg object-contain mr-3"
           />
           <div>
-            <div class="text-sm font-medium text-gray-900">{{ item.model?.name }}</div>
+            <div class="text-sm font-medium text-primary-600 hover:text-primary-900">{{ item.model?.name }}</div>
             <div class="text-sm text-gray-500">{{ item.model?.category?.name }}</div>
           </div>
-        </div>
+        </RouterLink>
       </template>
 
       <template #cell-location="{ item }">
@@ -142,6 +145,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import { PlusIcon, QrCodeIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 import { useItems } from '@/composables/useItems'

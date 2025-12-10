@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/api/client'
-import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto } from '@/types'
+import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, Item } from '@/types'
 
 export const materialModelsApi = {
   // Liste des modèles
@@ -7,9 +7,24 @@ export const materialModelsApi = {
     return apiGet<MaterialModel[]>('/api/material-models')
   },
 
+  // Recherche de modèles
+  search: (query: string): Promise<MaterialModel[]> => {
+    return apiGet<MaterialModel[]>(`/api/material-models/search?q=${encodeURIComponent(query)}`)
+  },
+
   // Détail d'un modèle
-  get: (id: string): Promise<MaterialModel> => {
-    return apiGet<MaterialModel>(`/api/material-models/${id}`)
+  get: (id: string): Promise<MaterialModel & { itemsCount?: number }> => {
+    return apiGet<MaterialModel & { itemsCount?: number }>(`/api/material-models/${id}`)
+  },
+
+  // Liste des items d'un modèle
+  getItems: (id: string): Promise<Item[]> => {
+    return apiGet<Item[]>(`/api/material-models/${id}/items`)
+  },
+
+  // Nombre d'items d'un modèle
+  getItemsCount: (id: string): Promise<number> => {
+    return apiGet<number>(`/api/material-models/${id}/items-count`)
   },
 
   // Créer un modèle
