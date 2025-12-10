@@ -94,38 +94,52 @@
             <h3 class="text-lg font-medium text-gray-900">Historique</h3>
           </div>
           <div class="card-body">
-            <div v-if="isLoadingStatusHistory" class="space-y-3">
+            <div v-if="isLoadingHistory" class="space-y-3">
               <div v-for="i in 3" :key="i" class="skeleton h-12"></div>
             </div>
-            <div v-else-if="!statusHistory?.length" class="text-center py-8 text-gray-500">
+            <div v-else-if="!itemHistory?.length" class="text-center py-8 text-gray-500">
               Aucun historique trouvé
             </div>
             <div v-else class="space-y-3">
               <div
-                v-for="s in statusHistory"
-                :key="s.id"
+                v-for="entry in itemHistory"
+                :key="entry.id"
                 class="flex items-start"
               >
                 <div class="flex-shrink-0">
-                  <div class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                    <span class="h-4 w-4 inline-block rounded-full" :style="{ backgroundColor: '#9CA3AF' }"></span>
+                  <div 
+                    class="h-8 w-8 rounded-full flex items-center justify-center"
+                    :class="getHistoryColor(entry.type).bg"
+                  >
+                    <component 
+                      :is="getHistoryIcon(entry.type)" 
+                      class="h-4 w-4"
+                      :style="{ color: getHistoryColor(entry.type).icon }"
+                    />
                   </div>
                 </div>
                 <div class="ml-3 flex-1">
-                  <div class="flex items-center space-x-2 mb-1">
+                  <div class="flex items-center space-x-2 mb-1 flex-wrap">
                     <span class="text-sm text-gray-900">
-                      <span class="font-medium">{{ s.setBy?.username || 'Système' }}</span>
-                      a défini le statut
+                      <span class="font-medium">{{ entry.user?.username || 'Système' }}</span>
                     </span>
-                    <StatusBadge v-if="s.status" :status="s.status" />
-                    <StatusBadge v-else :status="s.statusKey || 'Inconnu'" />
+                    <span class="text-sm text-gray-900">{{ entry.title }}</span>
+                    <StatusBadge 
+                      v-if="entry.type === 'status' && entry.data?.statusName" 
+                      :status="entry.data.statusName" 
+                    />
                   </div>
                   <p class="text-xs text-gray-500">
-                    {{ formatDateTime(s.startAt) }}
-                    <span v-if="s.endAt"> - {{ formatDateTime(s.endAt) }}</span>
+                    {{ formatDateTime(entry.timestamp) }}
+                    <span v-if="entry.type === 'status' && entry.data?.endAt">
+                      - {{ formatDateTime(entry.data.endAt) }}
+                    </span>
+                    <span v-else-if="entry.type === 'assignment' && entry.data?.endAt">
+                      - {{ formatDateTime(entry.data.endAt) }}
+                    </span>
                   </p>
-                  <p v-if="s.notes" class="text-xs text-gray-600 italic mt-1">
-                    {{ s.notes }}
+                  <p v-if="entry.description" class="text-xs text-gray-600 italic mt-1">
+                    {{ entry.description }}
                   </p>
                 </div>
               </div>
@@ -252,11 +266,11 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useItem } from '@/composables/useItems'
+import { useItem, useItemHistory } from '@/composables/useItems'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
 import { statusesApi } from '@/api/endpoints/statuses'
-import { useItemActiveStatusByGroup, useItemStatusHistory } from '@/composables/useStatuses'
+import { useItemActiveStatusByGroup } from '@/composables/useStatuses'
 import { useLocations } from '@/composables/useLocations'
 import { formatDate, formatDateTime } from '@/utils/formatDate'
 import { getLocationParentChildPath } from '@/utils/locationUtils'
@@ -266,6 +280,13 @@ import SetItemStatusModal from '@/components/modals/SetItemStatusModal.vue'
 import AssignItemModal from '@/components/modals/AssignItemModal.vue'
 import MoveItemModal from '@/components/modals/MoveItemModal.vue'
 import { StatusGroup } from '@/types'
+import { 
+  TagIcon, 
+  UserGroupIcon, 
+  MapPinIcon,
+  CurrencyDollarIcon
+} from '@heroicons/vue/24/outline'
+import { computed } from 'vue'
 
 const authStore = useAuthStore()
 const queryClient = useQueryClient()
@@ -277,8 +298,8 @@ const itemId = route.params.id as string
 const { data: item, isLoading: isLoadingItem } = useItem(itemId)
 const { data: allLocations } = useLocations()
 
-// Historique des statuts de l'item
-const { data: statusHistory, isLoading: isLoadingStatusHistory } = useItemStatusHistory(itemId)
+// Historique complet de l'item (statuts, affectations, changements d'emplacement)
+const { data: itemHistory, isLoading: isLoadingHistory } = useItemHistory(itemId)
 
 // Affectation actuelle
 const { data: assignments } = useQuery({
@@ -312,6 +333,28 @@ const getGroupLabel = (group: StatusGroup): string => {
   return labels[group] || group
 }
 
+// Fonction pour obtenir l'icône selon le type d'événement
+const getHistoryIcon = (type: string) => {
+  const iconMap: Record<string, any> = {
+    status: TagIcon,
+    assignment: UserGroupIcon,
+    audit: MapPinIcon,
+    transaction: CurrencyDollarIcon,
+  }
+  return iconMap[type] || TagIcon
+}
+
+// Fonction pour obtenir la couleur selon le type d'événement
+const getHistoryColor = (type: string) => {
+  const colorMap: Record<string, { bg: string; icon: string }> = {
+    status: { bg: 'bg-blue-100', icon: '#3B82F6' },
+    assignment: { bg: 'bg-green-100', icon: '#10B981' },
+    audit: { bg: 'bg-purple-100', icon: '#8B5CF6' },
+    transaction: { bg: 'bg-yellow-100', icon: '#F59E0B' },
+  }
+  return colorMap[type] || { bg: 'bg-gray-100', icon: '#9CA3AF' }
+}
+
 // Handlers
 const handleItemUpdated = () => {
   showEditModal.value = false
@@ -323,6 +366,7 @@ const handleStatusUpdated = () => {
   showStatusModal.value = false
   // Invalider les queries pour rafraîchir les données
   queryClient.invalidateQueries({ queryKey: ['items', itemId] })
+  queryClient.invalidateQueries({ queryKey: ['items', itemId, 'history'] })
 }
 
 const handleAssignmentUpdated = () => {
@@ -330,11 +374,13 @@ const handleAssignmentUpdated = () => {
   // Invalider les queries pour rafraîchir les données
   queryClient.invalidateQueries({ queryKey: ['assignments', 'item', itemId] })
   queryClient.invalidateQueries({ queryKey: ['items', itemId] })
+  queryClient.invalidateQueries({ queryKey: ['items', itemId, 'history'] })
 }
 
 const handleMoveUpdated = () => {
   showMoveModal.value = false
   // Invalider les queries pour rafraîchir les données
   queryClient.invalidateQueries({ queryKey: ['items', itemId] })
+  queryClient.invalidateQueries({ queryKey: ['items', itemId, 'history'] })
 }
 </script>
