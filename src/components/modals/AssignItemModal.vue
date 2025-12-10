@@ -179,8 +179,11 @@ const emit = defineEmits<{
 const queryClient = useQueryClient()
 
 // Queries
-const { data: users, isLoading: isLoadingUsers } = useUsers()
+const { data: usersResponse, isLoading: isLoadingUsers } = useUsers()
 const { data: teams, isLoading: isLoadingTeams } = useTeams()
+
+// Extraire le tableau d'utilisateurs de la réponse paginée
+const users = computed(() => usersResponse.value?.data || [])
 
 // Affectation actuelle
 const { data: assignments } = useQuery({
@@ -249,6 +252,8 @@ const handleSubmit = async () => {
   }
 }
 </script>
+
+
 
 
 

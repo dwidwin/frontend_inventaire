@@ -78,7 +78,7 @@
               </div>
               <div>
                 <dt class="text-sm font-medium text-gray-500">Emplacement</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ item?.location?.name || 'Non localisé' }}</dd>
+                <dd class="mt-1 text-sm text-gray-900">{{ getLocationParentChildPath(item?.location, allLocations) }}</dd>
               </div>
               <div>
                 <dt class="text-sm font-medium text-gray-500">Créé le</dt>
@@ -257,7 +257,9 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
 import { statusesApi } from '@/api/endpoints/statuses'
 import { useItemActiveStatusByGroup, useItemStatusHistory } from '@/composables/useStatuses'
+import { useLocations } from '@/composables/useLocations'
 import { formatDate, formatDateTime } from '@/utils/formatDate'
+import { getLocationParentChildPath } from '@/utils/locationUtils'
 import StatusBadge from '@/components/StatusBadge.vue'
 import EditItemModal from '@/components/modals/EditItemModal.vue'
 import SetItemStatusModal from '@/components/modals/SetItemStatusModal.vue'
@@ -273,6 +275,7 @@ const itemId = route.params.id as string
 
 // Queries
 const { data: item, isLoading: isLoadingItem } = useItem(itemId)
+const { data: allLocations } = useLocations()
 
 // Historique des statuts de l'item
 const { data: statusHistory, isLoading: isLoadingStatusHistory } = useItemStatusHistory(itemId)

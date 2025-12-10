@@ -220,6 +220,42 @@ export function buildLocationTree(
   return roots
 }
 
+/**
+ * Construit le chemin parent-enfant d'un emplacement
+ * au format "emplacement parent - emplacement enfant"
+ * 
+ * @param location - L'emplacement pour lequel construire le chemin
+ * @param allLocations - La liste complète des emplacements
+ * @returns Une chaîne formatée : "Parent - Enfant" ou juste "Enfant" s'il n'y a pas de parent
+ */
+export function getLocationParentChildPath(
+  location: Location | undefined,
+  allLocations: Location[] | undefined
+): string {
+  if (!location) {
+    return 'Non localisé'
+  }
+
+  if (!allLocations || !allLocations.length) {
+    return location.name
+  }
+
+  // Chercher le parent soit via parentId, soit via la référence parent imbriquée
+  const parentId = location.parentId || location.parent?.id
+
+  if (parentId) {
+    const parent = allLocations.find(l => l.id === parentId)
+    if (parent) {
+      return `${parent.name} - ${location.name}`
+    }
+  }
+
+  // Pas de parent trouvé, retourner juste le nom de l'emplacement
+  return location.name
+}
+
+
+
 
 
 

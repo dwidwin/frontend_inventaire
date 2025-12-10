@@ -221,8 +221,11 @@ const form = ref({
 
 // Queries
 const { data: items, isLoading: isLoadingItems } = useItems()
-const { data: users, isLoading: isLoadingUsers } = useUsers()
+const { data: usersResponse, isLoading: isLoadingUsers } = useUsers()
 const { data: teams, isLoading: isLoadingTeams } = useTeams()
+
+// Extraire le tableau d'utilisateurs de la réponse paginée
+const users = computed(() => usersResponse.value?.data || [])
 
 // Vérifier les affectations actives pour l'item sélectionné
 const itemId = computed(() => form.value.itemId)
