@@ -5,7 +5,7 @@
       <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900">
-            Affecter l'item
+            Affecter le modèle
           </h3>
           <button
             @click="handleClose"
@@ -166,14 +166,14 @@ import { formatDate } from '@/utils/formatDate'
 import type { Assignment } from '@/types'
 
 interface Props {
-  itemId: string
+  modelId: string
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
   close: []
-  updated: []
+  created: []
 }>()
 
 const queryClient = useQueryClient()
@@ -187,9 +187,9 @@ const users = computed(() => usersResponse.value?.data || [])
 
 // Affectation actuelle
 const { data: assignments } = useQuery({
-  queryKey: ['assignments', 'item', props.itemId],
-  queryFn: () => assignmentsApi.getByItem(props.itemId),
-  enabled: !!props.itemId,
+  queryKey: ['assignments', 'model', props.modelId],
+  queryFn: () => assignmentsApi.getByModel(props.modelId),
+  enabled: !!props.modelId,
 })
 
 const currentAssignment = computed<Assignment | undefined>(() => {
@@ -233,17 +233,17 @@ const handleSubmit = async () => {
 
   try {
     await createAssignmentMutation.mutateAsync({
-      itemId: props.itemId,
+      modelId: props.modelId,
       userId: assignmentType.value === 'user' ? form.value.userId : undefined,
       teamId: assignmentType.value === 'team' ? form.value.teamId : undefined,
       notes: form.value.notes || undefined,
     })
 
     // Invalider les queries pour rafraîchir les données
-    queryClient.invalidateQueries({ queryKey: ['assignments', 'item', props.itemId] })
-    queryClient.invalidateQueries({ queryKey: ['items', props.itemId] })
+    queryClient.invalidateQueries({ queryKey: ['assignments', 'model', props.modelId] })
+    queryClient.invalidateQueries({ queryKey: ['material-models', props.modelId] })
 
-    emit('updated')
+    emit('created')
     handleClose()
   } catch (err: any) {
     error.value = err?.response?.data?.message || err?.message || 'Une erreur est survenue'
@@ -252,8 +252,3 @@ const handleSubmit = async () => {
   }
 }
 </script>
-
-
-
-
-

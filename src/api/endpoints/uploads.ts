@@ -1,17 +1,17 @@
 import { apiUpload } from '@/api/client'
 
 export const uploadsApi = {
-  // Upload image pour un modèle
-  uploadModelImage: (modelId: string, file: File): Promise<{ imageUrl: string }> => {
+  // Upload image principale pour un modèle
+  uploadModelImage: (modelId: string, file: File): Promise<{ url: string; modelId: string }> => {
     const formData = new FormData()
     formData.append('file', file)
-    return apiUpload<{ imageUrl: string }>(`/api/uploads/model/${modelId}`, formData)
+    return apiUpload<{ url: string; modelId: string }>(`/api/uploads/model/${modelId}`, formData)
   },
 
-  // Upload photo pour un item
-  uploadItemImage: (itemId: string, file: File): Promise<{ imageUrl: string }> => {
+  // Upload photo pour un modèle
+  uploadModelPhoto: (modelId: string, file: File): Promise<{ url: string; modelId: string }> => {
     const formData = new FormData()
     formData.append('file', file)
-    return apiUpload<{ imageUrl: string }>(`/api/uploads/item/${itemId}`, formData)
+    return apiUpload<{ url: string; modelId: string }>(`/api/uploads/model/${modelId}/photo`, formData)
   },
 }

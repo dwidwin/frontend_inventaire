@@ -11,8 +11,8 @@
     <!-- Statistiques -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
       <StatCard
-        title="Total Items"
-        :value="stats.totalItems"
+        title="Total Modèles"
+        :value="stats.totalModels"
         icon="CubeIcon"
         color="primary"
         :loading="isLoadingStats"
@@ -45,10 +45,10 @@
       <h2 class="text-lg font-medium text-gray-900 mb-4">Actions rapides</h2>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <QuickActionCard
-          title="Ajouter un item"
+          title="Ajouter un modèle"
           description="Enregistrer un nouveau matériel"
           icon="PlusIcon"
-          href="/items"
+          href="/models"
           color="primary"
         />
         <QuickActionCard
@@ -66,10 +66,10 @@
           color="warning"
         />
         <QuickActionCard
-          title="Scanner code-barres"
-          description="Rechercher par code-barres"
+          title="Voir le catalogue"
+          description="Parcourir le matériel"
           icon="QrCodeIcon"
-          href="/items"
+          href="/catalogue"
           color="primary"
         />
       </div>
@@ -144,7 +144,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useItems } from '@/composables/useItems'
+import { useMaterialModels } from '@/composables/useMaterialModels'
 import { useNotifications, useUnreadNotificationsCount, useMarkNotificationAsRead } from '@/composables/useNotifications'
 import { useQuery } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
@@ -158,7 +158,7 @@ import ActivityItem from '@/components/ActivityItem.vue'
 const authStore = useAuthStore()
 
 // Queries
-const { data: items, isLoading: isLoadingItems } = useItems()
+const { data: models, isLoading: isLoadingModels } = useMaterialModels()
 const { data: notifications, isLoading: isLoadingNotifications } = useNotifications()
 const unreadNotificationsCount = useUnreadNotificationsCount()
 const markAsReadMutation = useMarkNotificationAsRead()
@@ -183,13 +183,13 @@ const { data: recentActivity, isLoading: isLoadingAudit } = useQuery({
 
 // Statistiques calculées
 const stats = computed(() => ({
-  totalItems: items.value?.length || 0,
+  totalModels: models.value?.length || 0,
   activeAssignments: activeAssignments.value?.length || 0,
   monthlyTransactions: monthlyTransactions.value?.length || 0,
 }))
 
 const isLoadingStats = computed(() => 
-  isLoadingItems.value || isLoadingAssignments.value || isLoadingTransactions.value
+  isLoadingModels.value || isLoadingAssignments.value || isLoadingTransactions.value
 )
 
 // Notifications récentes (5 dernières)

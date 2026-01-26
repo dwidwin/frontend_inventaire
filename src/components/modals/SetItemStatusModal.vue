@@ -5,7 +5,7 @@
       <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900">
-            Changer le statut de l'item
+            Changer le statut du modèle
           </h3>
           <button
             @click="handleClose"
@@ -116,13 +116,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
-import { useStatuses, useItemActiveStatus, useSetItemStatus } from '@/composables/useStatuses'
-import { useItem } from '@/composables/useItems'
+import { useStatuses, useModelActiveStatus, useSetItemStatus } from '@/composables/useStatuses'
+import { useMaterialModel } from '@/composables/useMaterialModels'
 import { statusesApi } from '@/api/endpoints/statuses'
 import type { Status, ItemStatus } from '@/types'
 
 interface Props {
-  itemId: string
+  modelId: string
 }
 
 const props = defineProps<Props>()
@@ -134,8 +134,8 @@ const emit = defineEmits<{
 
 // Queries
 const { data: statuses, isLoading: isLoadingStatuses } = useStatuses()
-const { data: item } = useItem(props.itemId)
-const { data: activeItemStatuses } = useItemActiveStatus(props.itemId)
+const { data: model } = useMaterialModel(props.modelId)
+const { data: activeModelStatuses } = useModelActiveStatus(props.modelId)
 const setItemStatusMutation = useSetItemStatus()
 
 // Liste des statuts actifs uniquement
@@ -146,7 +146,7 @@ const statusesList = computed(() => {
 
 // Statuts actifs actuels
 const currentActiveStatuses = computed(() => {
-  return activeItemStatuses.value || []
+  return activeModelStatuses.value || []
 })
 
 const currentActiveStatusKeys = computed(() => {
@@ -242,8 +242,8 @@ const handleSubmit = async () => {
   try {
     // Créer un map des statuts actifs actuels par groupe
     const activeStatusByGroup = new Map<string, string>()
-    if (activeItemStatuses.value) {
-      activeItemStatuses.value.forEach(itemStatus => {
+    if (activeModelStatuses.value) {
+      activeModelStatuses.value.forEach(itemStatus => {
         if (itemStatus.status?.group && itemStatus.status?.key) {
           activeStatusByGroup.set(itemStatus.status.group, itemStatus.status.key)
         }
@@ -268,7 +268,7 @@ const handleSubmit = async () => {
       // Si le statut a changé ou n'existe pas encore, le définir
       if (hasChanged) {
         await setItemStatusMutation.mutateAsync({
-          itemId: props.itemId,
+          modelId: props.modelId,
           statusKey: statusKey,
           notes: form.value.notes || undefined,
         })
@@ -279,7 +279,7 @@ const handleSubmit = async () => {
     for (const [group] of activeStatusByGroup.entries()) {
       if (!selectedStatusByGroup.has(group)) {
         try {
-          await statusesApi.closeActiveByGroup(props.itemId, group)
+          await statusesApi.closeActiveByGroup(props.modelId, group)
         } catch (err) {
           // Ne pas bloquer si la fermeture échoue
           console.error('Erreur lors de la fermeture du statut:', err)
@@ -297,7 +297,7 @@ const handleSubmit = async () => {
 }
 
 // Initialiser la sélection quand les données sont chargées
-watch(activeItemStatuses, (newStatuses) => {
+watch(activeModelStatuses, (newStatuses) => {
   if (newStatuses && newStatuses.length > 0 && selectedStatusKeys.value.length === 0) {
     initializeSelection()
   }

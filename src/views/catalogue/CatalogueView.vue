@@ -111,7 +111,7 @@
 
     <!-- Compteur de résultats -->
     <div class="mb-4 text-sm text-gray-600">
-      {{ filteredItems.length }} résultat(s) trouvé(s)
+      {{ filteredModels.length }} résultat(s) trouvé(s)
     </div>
 
     <!-- Grille de cartes -->
@@ -125,23 +125,23 @@
       </div>
     </div>
 
-    <div v-else-if="!filteredItems.length" class="text-center py-12">
+    <div v-else-if="!filteredModels.length" class="text-center py-12">
       <p class="text-gray-500">Aucun matériel trouvé</p>
     </div>
 
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       <RouterLink
-        v-for="item in filteredItems"
-        :key="item.id"
-        :to="`/items/${item.id}`"
+        v-for="model in filteredModels"
+        :key="model.id"
+        :to="`/models/${model.id}`"
         class="card hover:shadow-lg transition-shadow cursor-pointer"
       >
         <!-- Image -->
         <div class="relative h-48 bg-gray-100 rounded-t-lg overflow-hidden">
           <img
-            v-if="item.model?.mainImageUrl || item.photoUrl"
-            :src="item.photoUrl || item.model?.mainImageUrl"
-            :alt="item.model?.name || 'Matériel'"
+            v-if="model.mainImageUrl || model.photoUrl"
+            :src="model.photoUrl || model.mainImageUrl"
+            :alt="model.name || 'Matériel'"
             class="w-full h-full object-contain"
           />
           <div v-else class="w-full h-full flex items-center justify-center">
@@ -149,9 +149,9 @@
           </div>
           <!-- Badges statuts -->
           <div class="absolute top-2 right-2 flex flex-wrap gap-1 justify-end">
-            <template v-if="itemStatusesMap[item.id]?.length">
+            <template v-if="modelStatusesMap[model.id]?.length">
               <StatusBadge 
-                v-for="itemStatus in itemStatusesMap[item.id]" 
+                v-for="itemStatus in modelStatusesMap[model.id]" 
                 :key="itemStatus.status?.id || itemStatus.statusKey"
                 :status="itemStatus.status" 
               />
@@ -163,18 +163,21 @@
         <!-- Contenu de la carte -->
         <div class="card-body">
           <h3 class="font-semibold text-gray-900 mb-1">
-            {{ item.model?.name || 'Sans nom' }}
+            {{ model.name || 'Sans nom' }}
           </h3>
           <p class="text-sm text-gray-600 mb-2">
-            {{ item.model?.category?.name || 'Sans catégorie' }}
+            <span v-if="model.categories && model.categories.length > 0">
+              {{ model.categories.map(c => c.name).join(', ') }}
+            </span>
+            <span v-else>Sans catégorie</span>
           </p>
           <div class="flex items-center justify-between text-xs text-gray-500">
-            <span v-if="item.location">
-              📍 {{ item.location.name }}
+            <span v-if="model.location">
+              📍 {{ model.location.name }}
             </span>
             <span v-else class="text-gray-400">Non localisé</span>
-            <span v-if="item.codeBarre" class="font-mono">
-              {{ item.codeBarre }}
+            <span v-if="model.codeBarre" class="font-mono">
+              {{ model.codeBarre }}
             </span>
           </div>
         </div>
@@ -187,7 +190,7 @@
 import { ref, computed, unref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { MagnifyingGlassIcon, CubeIcon } from '@heroicons/vue/24/outline'
-import { useItems } from '@/composables/useItems'
+import { useMaterialModels } from '@/composables/useMaterialModels'
 import { useCategories } from '@/composables/useCategories'
 import { useLocations } from '@/composables/useLocations'
 import { useStatuses } from '@/composables/useStatuses'
@@ -195,10 +198,10 @@ import { useQueries } from '@tanstack/vue-query'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import { getLocationsWithIndent } from '@/utils/locationUtils'
 import StatusBadge from '@/components/StatusBadge.vue'
-import type { Item, Status } from '@/types'
+import type { MaterialModel, Status } from '@/types'
 
 // Queries
-const { data: items, isLoading } = useItems()
+const { data: models, isLoading } = useMaterialModels()
 const { data: categories } = useCategories()
 const { data: locations } = useLocations()
 const { data: statuses } = useStatuses()
@@ -208,27 +211,27 @@ const statusesList = computed(() => {
   return (statuses.value || []).filter((status: Status) => status.isActive !== false)
 })
 
-// Récupérer les statuts actifs pour tous les items
+// Récupérer les statuts actifs pour tous les modèles
 const statusQueries = useQueries({
   queries: computed(() => {
-    if (!items.value) return []
-    return items.value.map((item) => ({
-      queryKey: ['item-statuses', 'active', item.id],
+    if (!models.value) return []
+    return models.value.map((model) => ({
+      queryKey: ['item-statuses', 'active', model.id],
       queryFn: async () => {
         const { statusesApi } = await import('@/api/endpoints/statuses')
-        return statusesApi.getItemActiveStatus(item.id)
+        return statusesApi.getModelActiveStatus(model.id)
       },
-      enabled: !!item.id,
+      enabled: !!model.id,
     }))
   }),
 })
 
-// Mapper les statuts actifs par item ID
-const itemStatusesMap = computed(() => {
+// Mapper les statuts actifs par modèle ID
+const modelStatusesMap = computed(() => {
   const map: Record<string, any[]> = {}
-  if (!items.value) return map
+  if (!models.value) return map
   
-  items.value.forEach((item, index) => {
+  models.value.forEach((model, index) => {
     const queryResult = statusQueries.value[index]
     if (!queryResult || !queryResult.isSuccess) return
     
@@ -236,7 +239,7 @@ const itemStatusesMap = computed(() => {
     const statuses = unref(queryResult.data) || []
     
     if (Array.isArray(statuses) && statuses.length > 0) {
-      map[item.id] = statuses
+      map[model.id] = statuses
     }
   })
   
@@ -326,58 +329,60 @@ const resetFilters = () => {
   showAllStatuses.value = false
 }
 
-// Items filtrés
-const filteredItems = computed(() => {
-  let result = (items.value || []).filter(Boolean) as Item[]
+// Modèles filtrés
+const filteredModels = computed(() => {
+  let result = (models.value || []).filter(Boolean) as MaterialModel[]
 
   // Recherche textuelle
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    result = result.filter((item: Item) => {
-      const modelName = item.model?.name?.toLowerCase() || ''
-      const categoryName = item.model?.category?.name?.toLowerCase() || ''
-      const codeBarre = item.codeBarre?.toLowerCase() || ''
-      const locationName = item.location?.name?.toLowerCase() || ''
+    result = result.filter((model: MaterialModel) => {
+      const modelName = model.name?.toLowerCase() || ''
+      const categoryNames = model.categories?.map(c => c.name?.toLowerCase() || '').join(' ') || ''
+      const codeBarre = model.codeBarre?.toLowerCase() || ''
+      const locationName = model.location?.name?.toLowerCase() || ''
+      const description = model.description?.toLowerCase() || ''
       
       return modelName.includes(query) ||
-             categoryName.includes(query) ||
+             categoryNames.includes(query) ||
              codeBarre.includes(query) ||
-             locationName.includes(query)
+             locationName.includes(query) ||
+             description.includes(query)
     })
   }
 
   // Filtre par catégorie
   if (selectedCategoryId.value) {
-    result = result.filter((item: Item) => 
-      item.model?.category?.id === selectedCategoryId.value
+    result = result.filter((model: MaterialModel) => 
+      model.categories?.some(cat => cat.id === selectedCategoryId.value)
     )
   }
 
   // Filtre par emplacement
   if (selectedLocationId.value) {
-    result = result.filter((item: Item) => 
-      item.location?.id === selectedLocationId.value
+    result = result.filter((model: MaterialModel) => 
+      model.location?.id === selectedLocationId.value
     )
   }
 
   // Filtre par état (sélection multiple)
   if (selectedStatuses.value.length > 0) {
-    result = result.filter((item: Item) => {
-      // Vérifier si l'item a au moins un des statuts sélectionnés
-      const itemStatuses = itemStatusesMap.value[item.id] || []
-      const itemStatusKeys = itemStatuses
+    result = result.filter((model: MaterialModel) => {
+      // Vérifier si le modèle a au moins un des statuts sélectionnés
+      const modelStatuses = modelStatusesMap.value[model.id] || []
+      const modelStatusKeys = modelStatuses
         .map((is: any) => is.status?.key)
         .filter(Boolean)
       
-      // Si l'item a des statuts actifs, vérifier si au moins un correspond
-      if (itemStatusKeys.length > 0) {
+      // Si le modèle a des statuts actifs, vérifier si au moins un correspond
+      if (modelStatusKeys.length > 0) {
         return selectedStatuses.value.some(selectedKey => 
-          itemStatusKeys.includes(selectedKey)
+          modelStatusKeys.includes(selectedKey)
         )
       }
       
       // Fallback : vérifier l'ancien champ etat si pas de statuts actifs
-      return item.etat && selectedStatuses.value.includes(item.etat)
+      return model.etat && selectedStatuses.value.includes(model.etat)
     })
   }
 

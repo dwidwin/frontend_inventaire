@@ -1,7 +1,7 @@
 // Re-export des composables pour faciliter l'import
 export * from './useUsers'
 export * from './useCategories'
-export * from './useItems'
+export * from './useMaterialModels'
 export * from './useNotifications'
 
 // Composables pour les autres entités

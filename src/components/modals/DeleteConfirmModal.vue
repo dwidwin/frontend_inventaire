@@ -11,22 +11,22 @@
       <!-- Contenu -->
       <div class="px-6 py-4">
         <p class="text-sm text-gray-600 mb-4">
-          Êtes-vous sûr de vouloir supprimer cet item ?
+          Êtes-vous sûr de vouloir supprimer {{ entityType === 'model' ? 'ce modèle' : 'cet élément' }} ?
         </p>
         
-        <div v-if="item" class="p-3 bg-gray-50 border border-gray-200 rounded-lg mb-4">
+        <div v-if="entity" class="p-3 bg-gray-50 border border-gray-200 rounded-lg mb-4">
           <div class="flex items-center space-x-3">
             <img
-              v-if="item.model?.mainImageUrl"
-              :src="item.model.mainImageUrl"
-              :alt="item.model.name"
+              v-if="entity.mainImageUrl || entity.photoUrl"
+              :src="entity.photoUrl || entity.mainImageUrl"
+              :alt="entity.name"
               class="h-12 w-12 rounded-lg object-contain"
             />
             <div class="flex-1">
-              <div class="text-sm font-medium text-gray-900">{{ item.model?.name }}</div>
+              <div class="text-sm font-medium text-gray-900">{{ entity.name }}</div>
               <div class="text-xs text-gray-500">
-                <span v-if="item.codeBarre">Code-barres: {{ item.codeBarre }}</span>
-                <span v-if="item.location"> • {{ item.location.name }}</span>
+                <span v-if="entity.codeBarre">Code-barres: {{ entity.codeBarre }}</span>
+                <span v-if="entity.location"> • {{ entity.location.name }}</span>
               </div>
             </div>
           </div>
@@ -64,12 +64,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useDeleteItem } from '@/composables/useItems'
-import type { Item } from '@/types'
+import { ref, computed } from 'vue'
+import { useDeleteMaterialModel } from '@/composables/useMaterialModels'
+import type { MaterialModel } from '@/types'
 
 const props = defineProps<{
-  item: Item
+  model?: MaterialModel
+  item?: any // Pour compatibilité avec l'ancien code
 }>()
 
 const emit = defineEmits<{
@@ -77,19 +78,29 @@ const emit = defineEmits<{
   (e: 'confirmed'): void
 }>()
 
-const deleteItemMutation = useDeleteItem()
+const entity = computed(() => props.model || props.item)
+const entityType = computed(() => props.model ? 'model' : 'item')
+
+const deleteModelMutation = useDeleteMaterialModel()
 const isDeleting = ref(false)
 
 const handleConfirm = async () => {
+  if (!entity.value) return
+  
   isDeleting.value = true
   
   try {
-    await deleteItemMutation.mutateAsync(props.item.id)
+    if (entityType.value === 'model') {
+      await deleteModelMutation.mutateAsync(entity.value.id)
+    } else {
+      // Fallback pour compatibilité
+      console.warn('Suppression d\'item non supportée')
+    }
     emit('confirmed')
     emit('close')
   } catch (error) {
-    console.error('Erreur lors de la suppression de l\'item:', error)
-    alert('Erreur lors de la suppression de l\'item. Veuillez réessayer.')
+    console.error('Erreur lors de la suppression:', error)
+    alert('Erreur lors de la suppression. Veuillez réessayer.')
   } finally {
     isDeleting.value = false
   }

@@ -35,14 +35,28 @@
         </RouterLink>
       </template>
 
-      <template #cell-category="{ item }">
-        <span class="text-sm text-gray-900">{{ item.category?.name }}</span>
+      <template #cell-categories="{ item }">
+        <div class="flex flex-wrap gap-1">
+          <span
+            v-for="category in item.categories"
+            :key="category.id"
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+          >
+            {{ category.name }}
+          </span>
+          <span v-if="!item.categories || item.categories.length === 0" class="text-sm text-gray-500">
+            Aucune catégorie
+          </span>
+        </div>
       </template>
 
-      <template #cell-itemsCount="{ item }">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {{ itemsCountMap[item.id] || 0 }} item{{ (itemsCountMap[item.id] || 0) > 1 ? 's' : '' }}
-        </span>
+      <template #cell-location="{ item }">
+        <span v-if="item.location" class="text-sm text-gray-900">{{ item.location.name }}</span>
+        <span v-else class="text-sm text-gray-500">Non localisé</span>
+      </template>
+
+      <template #cell-etat="{ item }">
+        <span class="text-sm text-gray-900">{{ item.etat || 'en_stock' }}</span>
       </template>
       
       <template #cell-mainImageUrl="{ item }">
@@ -94,30 +108,6 @@ const { data: models, isLoading: isLoadingModels } = useQuery({
   queryFn: () => materialModelsApi.list(),
 })
 
-// Récupérer le count d'items pour chaque modèle
-const itemsCountQueries = useQueries({
-  queries: computed(() => {
-    if (!models.value) return []
-    return models.value.map((model) => ({
-      queryKey: ['material-models', model.id, 'items-count'],
-      queryFn: () => materialModelsApi.getItemsCount(model.id),
-      enabled: !!model.id,
-    }))
-  }),
-})
-
-// Mapper les counts par modèle ID
-const itemsCountMap = computed(() => {
-  const map: Record<string, number> = {}
-  if (!models.value) return map
-  
-  models.value.forEach((model, index) => {
-    const count = itemsCountQueries.value[index]?.data?.value || 0
-    map[model.id] = count
-  })
-  
-  return map
-})
 
 // État local
 const showCreateModelModal = ref(false)
@@ -127,8 +117,10 @@ const selectedModel = ref<MaterialModel | null>(null)
 // Colonnes pour les modèles
 const modelColumns = [
   { key: 'name', label: 'Nom', sortable: true },
-  { key: 'category', label: 'Catégorie', sortable: true },
-  { key: 'itemsCount', label: 'Items', sortable: true },
+  { key: 'categories', label: 'Catégories', sortable: false },
+  { key: 'location', label: 'Emplacement', sortable: true },
+  { key: 'etat', label: 'État', sortable: true },
+  { key: 'codeBarre', label: 'Code-barres', sortable: true },
   { key: 'mainImageUrl', label: 'Image', sortable: false },
   { key: 'createdAt', label: 'Créé le', sortable: true },
 ]

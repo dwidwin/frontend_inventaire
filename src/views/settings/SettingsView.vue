@@ -171,73 +171,6 @@
         </DataTable>
       </div>
 
-      <!-- Items -->
-      <div v-if="activeTab === 'items'">
-        <div class="mb-6 flex justify-between items-center">
-          <h2 class="text-lg font-medium text-gray-900">Items</h2>
-          <button
-            @click="showCreateItemModal = true"
-            class="btn btn-primary"
-          >
-            <PlusIcon class="h-5 w-5 mr-2" />
-            Ajouter un item
-          </button>
-        </div>
-
-        <DataTable
-          :data="items || []"
-          :columns="itemColumns"
-          :is-loading="isLoadingItems"
-          @edit="handleEditItem"
-          @delete="handleDeleteItem"
-        >
-          <template #cell-model="{ item }">
-            <div class="flex items-center">
-              <img
-                v-if="item.model?.mainImageUrl"
-                :src="item.model.mainImageUrl"
-                :alt="item.model.name"
-                class="h-10 w-10 rounded-lg object-contain mr-3"
-              />
-              <div>
-                <div class="text-sm font-medium text-gray-900">{{ item.model?.name }}</div>
-                <div class="text-sm text-gray-500">{{ item.model?.category?.name }}</div>
-              </div>
-            </div>
-          </template>
-
-          <template #cell-location="{ item }">
-            <div v-if="item.location" class="text-sm text-gray-900">
-              {{ item.location.name }}
-            </div>
-            <span v-else class="text-sm text-gray-500">Non localisé</span>
-          </template>
-
-          <template #cell-codeBarre="{ item }">
-            <span v-if="item.codeBarre" class="font-mono text-sm text-gray-900">
-              {{ item.codeBarre }}
-            </span>
-            <span v-else class="text-sm text-gray-500">-</span>
-          </template>
-
-          <template #cell-etat="{ item }">
-            <div class="flex flex-wrap gap-1">
-              <template v-if="itemStatusesMap[item.id]?.length">
-                <StatusBadge 
-                  v-for="itemStatus in itemStatusesMap[item.id]" 
-                  :key="itemStatus.status?.id || itemStatus.statusKey"
-                  :status="itemStatus.status" 
-                />
-              </template>
-              <StatusBadge v-else status="Non défini" />
-            </div>
-          </template>
-          
-          <template #cell-createdAt="{ item }">
-            <span class="text-sm text-gray-900">{{ formatDate(item.createdAt) }}</span>
-          </template>
-        </DataTable>
-      </div>
 
       <!-- Statuts -->
       <div v-if="activeTab === 'statuses'">
@@ -384,26 +317,6 @@
       @updated="handleModelUpdated"
     />
 
-    <!-- Modals Items -->
-    <CreateItemModal
-      v-if="showCreateItemModal"
-      @close="showCreateItemModal = false"
-      @created="handleItemCreated"
-    />
-    
-    <CreateItemModal
-      v-if="showEditItemModal && selectedItem"
-      :item="selectedItem"
-      @close="showEditItemModal = false"
-      @updated="handleItemUpdated"
-    />
-    
-    <DeleteConfirmModal
-      v-if="showDeleteItemModal && selectedItem"
-      :item="selectedItem"
-      @close="showDeleteItemModal = false"
-      @confirmed="handleItemDeleted"
-    />
 
     <!-- Modals Statuts -->
     <CreateStatusModal
@@ -442,7 +355,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { PlusIcon, CurrencyDollarIcon } from '@heroicons/vue/24/outline'
 import { useCategories } from '@/composables/useCategories'
 import { useUsers } from '@/composables/useUsers'
-import { useItems } from '@/composables/useItems'
 import { useStatuses, useDeleteStatus } from '@/composables/useStatuses'
 import { useQuery, useQueries } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints/materialModels'
@@ -454,13 +366,12 @@ import CreateCategoryModal from '@/components/modals/CreateCategoryModal.vue'
 import EditCategoryModal from '@/components/modals/EditCategoryModal.vue'
 import CreateModelModal from '@/components/modals/CreateModelModal.vue'
 import EditModelModal from '@/components/modals/EditModelModal.vue'
-import CreateItemModal from '@/components/modals/CreateItemModal.vue'
 import CreateStatusModal from '@/components/modals/CreateStatusModal.vue'
 import EditStatusModal from '@/components/modals/EditStatusModal.vue'
 import DeleteStatusModal from '@/components/modals/DeleteStatusModal.vue'
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
 import EditUserModal from '@/components/modals/EditUserModal.vue'
-import type { Category, MaterialModel, Transaction, User, Item, Status, StatusGroup } from '@/types'
+import type { Category, MaterialModel, Transaction, User, Status, StatusGroup } from '@/types'
 import { StatusGroup as StatusGroupEnum } from '@/types'
 import { formatDate } from '@/utils/formatDate'
 
@@ -471,7 +382,6 @@ const router = useRouter()
 const tabs = [
   { name: 'categories', label: 'Catégories' },
   { name: 'models', label: 'Modèles' },
-  { name: 'items', label: 'Items' },
   { name: 'transactions', label: 'Transactions' },
   { name: 'statuses', label: 'Statuts' },
   { name: 'users', label: 'Gestion des utilisateurs' },
@@ -506,42 +416,6 @@ const { data: models, isLoading: isLoadingModels } = useQuery({
   queryKey: ['material-models'],
   queryFn: () => materialModelsApi.list(),
 })
-const { data: items, isLoading: isLoadingItems } = useItems()
-
-// Récupérer les statuts actifs pour tous les items
-const statusQueries = useQueries({
-  queries: computed(() => {
-    if (!items.value) return []
-    return items.value.map((item) => ({
-      queryKey: ['item-statuses', 'active', item.id],
-      queryFn: async () => {
-        const { statusesApi } = await import('@/api/endpoints/statuses')
-        return statusesApi.getItemActiveStatus(item.id)
-      },
-      enabled: !!item.id,
-    }))
-  }),
-})
-
-// Mapper les statuts actifs par item ID
-const itemStatusesMap = computed(() => {
-  const map: Record<string, any[]> = {}
-  if (!items.value) return map
-  
-  items.value.forEach((item, index) => {
-    const queryResult = statusQueries.value[index]
-    if (!queryResult || !queryResult.isSuccess) return
-    
-    // Dans Vue Query v5, data est un Ref. Utilisons unref pour être sûr de déballer le Ref
-    const statuses = unref(queryResult.data) || []
-    
-    if (Array.isArray(statuses) && statuses.length > 0) {
-      map[item.id] = statuses
-    }
-  })
-  
-  return map
-})
 
 const { data: transactions, isLoading: isLoadingTransactions } = useQuery({
   queryKey: ['transactions'],
@@ -566,11 +440,6 @@ const showCreateRentalModal = ref(false)
 const showCreateSaleModal = ref(false)
 const selectedTransaction = ref<Transaction | null>(null)
 
-// État local - Items
-const showCreateItemModal = ref(false)
-const showEditItemModal = ref(false)
-const showDeleteItemModal = ref(false)
-const selectedItem = ref<Item | null>(null)
 
 // État local - Utilisateurs
 const showCreateUserModal = ref(false)
@@ -604,14 +473,6 @@ const transactionColumns = [
   { key: 'status', label: 'Statut', sortable: true },
 ]
 
-// Colonnes pour les items
-const itemColumns = [
-  { key: 'model', label: 'Modèle', sortable: true },
-  { key: 'location', label: 'Emplacement', sortable: true },
-  { key: 'codeBarre', label: 'Code-barres', sortable: true },
-  { key: 'etat', label: 'État', sortable: true },
-  { key: 'createdAt', label: 'Créé le', sortable: true },
-]
 
 // Colonnes pour les statuts
 const statusColumns = [
@@ -672,30 +533,6 @@ const handleModelUpdated = () => {
   selectedModel.value = null
 }
 
-// Actions pour les items
-const handleEditItem = (item: Item) => {
-  selectedItem.value = item
-  showEditItemModal.value = true
-}
-
-const handleDeleteItem = (item: Item) => {
-  selectedItem.value = item
-  showDeleteItemModal.value = true
-}
-
-const handleItemCreated = () => {
-  showCreateItemModal.value = false
-}
-
-const handleItemUpdated = () => {
-  showEditItemModal.value = false
-  selectedItem.value = null
-}
-
-const handleItemDeleted = () => {
-  showDeleteItemModal.value = false
-  selectedItem.value = null
-}
 
 // Actions pour les transactions
 const handleEditTransaction = (transaction: Transaction) => {

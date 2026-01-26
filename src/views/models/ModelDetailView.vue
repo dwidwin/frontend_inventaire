@@ -6,17 +6,15 @@
         <div>
           <h1 class="text-2xl font-bold text-gray-900">{{ model?.name }}</h1>
           <p class="mt-1 text-sm text-gray-600">
-            {{ model?.category?.name }} • {{ itemsCount || 0 }} item{{ (itemsCount || 0) > 1 ? 's' : '' }}
+            <span v-if="model?.categories && model.categories.length > 0">
+              {{ model.categories.map(c => c.name).join(', ') }}
+            </span>
+            <span v-else>Sans catégorie</span>
+            <span v-if="model?.location"> • 📍 {{ model.location.name }}</span>
+            <span v-if="model?.etat"> • État: {{ model.etat }}</span>
           </p>
         </div>
         <div v-if="authStore.canWrite" class="flex items-center space-x-3">
-          <button
-            @click="showCreateItemModal = true"
-            class="btn btn-primary"
-          >
-            <PlusIcon class="h-5 w-5 mr-2" />
-            Ajouter un item
-          </button>
           <button
             @click="showEditModal = true"
             class="btn btn-secondary"
@@ -41,16 +39,29 @@
                 <dd class="mt-1 text-sm text-gray-900">{{ model?.name }}</dd>
               </div>
               <div>
-                <dt class="text-sm font-medium text-gray-500">Catégorie</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ model?.category?.name }}</dd>
+                <dt class="text-sm font-medium text-gray-500">Catégories</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  <span v-if="model?.categories && model.categories.length > 0">
+                    {{ model.categories.map(c => c.name).join(', ') }}
+                  </span>
+                  <span v-else class="text-gray-500">Aucune catégorie</span>
+                </dd>
               </div>
               <div v-if="model?.referenceFournisseur">
                 <dt class="text-sm font-medium text-gray-500">Référence fournisseur</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ model.referenceFournisseur }}</dd>
               </div>
+              <div v-if="model?.location">
+                <dt class="text-sm font-medium text-gray-500">Emplacement</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ model.location.name }}</dd>
+              </div>
+              <div v-if="model?.codeBarre">
+                <dt class="text-sm font-medium text-gray-500">Code-barres</dt>
+                <dd class="mt-1 text-sm text-gray-900 font-mono">{{ model.codeBarre }}</dd>
+              </div>
               <div>
-                <dt class="text-sm font-medium text-gray-500">Nombre d'items</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ itemsCount || 0 }}</dd>
+                <dt class="text-sm font-medium text-gray-500">État</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ model?.etat || 'en_stock' }}</dd>
               </div>
               <div v-if="model?.description" class="sm:col-span-2">
                 <dt class="text-sm font-medium text-gray-500">Description</dt>
@@ -77,21 +88,6 @@
 
       <!-- Sidebar -->
       <div class="space-y-6">
-        <!-- Statistiques -->
-        <div class="card">
-          <div class="card-header">
-            <h3 class="text-lg font-medium text-gray-900">Statistiques</h3>
-          </div>
-          <div class="card-body">
-            <div class="space-y-3">
-              <div>
-                <div class="text-sm text-gray-500">Total d'items</div>
-                <div class="text-2xl font-bold text-gray-900">{{ itemsCount || 0 }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Actions rapides -->
         <div v-if="authStore.canWrite" class="card">
           <div class="card-header">
@@ -99,106 +95,119 @@
           </div>
           <div class="card-body space-y-2">
             <button
-              @click="showCreateItemModal = true"
-              class="w-full btn btn-primary btn-sm"
-            >
-              Créer un item
-            </button>
-            <button
               @click="showEditModal = true"
               class="w-full btn btn-secondary btn-sm"
             >
               Modifier le modèle
+            </button>
+            <button
+              @click="showMoveModal = true"
+              class="w-full btn btn-secondary btn-sm"
+            >
+              Déplacer
+            </button>
+            <button
+              @click="showAssignModal = true"
+              class="w-full btn btn-secondary btn-sm"
+            >
+              Affecter
+            </button>
+            <button
+              @click="showStatusModal = true"
+              class="w-full btn btn-secondary btn-sm"
+            >
+              Changer statut
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Liste des items -->
+    <!-- Historique et affectations -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <!-- Affectations -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-lg font-medium text-gray-900">Affectations</h3>
+        </div>
+        <div class="card-body">
+          <div v-if="isLoadingAssignments" class="text-center py-8 text-gray-500">
+            Chargement...
+          </div>
+          <div v-else-if="!assignments || assignments.length === 0" class="text-center py-8 text-gray-500">
+            Aucune affectation
+          </div>
+          <div v-else class="space-y-3">
+            <div
+              v-for="assignment in assignments"
+              :key="assignment.id"
+              class="p-3 bg-gray-50 rounded-lg"
+            >
+              <div class="text-sm font-medium text-gray-900">
+                {{ assignment.user?.username || assignment.team?.name || 'Inconnu' }}
+              </div>
+              <div class="text-xs text-gray-500 mt-1">
+                Depuis le {{ formatDate(assignment.startAt) }}
+                <span v-if="assignment.endAt"> jusqu'au {{ formatDate(assignment.endAt) }}</span>
+                <span v-else class="text-green-600"> (Active)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statuts actifs -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-lg font-medium text-gray-900">Statuts actifs</h3>
+        </div>
+        <div class="card-body">
+          <div v-if="isLoadingStatuses" class="text-center py-8 text-gray-500">
+            Chargement...
+          </div>
+          <div v-else-if="!activeStatuses || activeStatuses.length === 0" class="text-center py-8 text-gray-500">
+            Aucun statut actif
+          </div>
+          <div v-else class="flex flex-wrap gap-2">
+            <StatusBadge
+              v-for="itemStatus in activeStatuses"
+              :key="itemStatus.status?.id || itemStatus.statusKey"
+              :status="itemStatus.status"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historique -->
     <div class="card">
       <div class="card-header">
-        <h3 class="text-lg font-medium text-gray-900">Items utilisant ce modèle</h3>
+        <h3 class="text-lg font-medium text-gray-900">Historique</h3>
       </div>
       <div class="card-body">
-        <div v-if="isLoadingItems" class="text-center py-8 text-gray-500">
-          Chargement des items...
+        <div v-if="isLoadingHistory" class="text-center py-8 text-gray-500">
+          Chargement de l'historique...
         </div>
-        <div v-else-if="!items || items.length === 0" class="text-center py-8 text-gray-500">
-          Aucun item n'utilise ce modèle pour le moment.
+        <div v-else-if="!history || history.length === 0" class="text-center py-8 text-gray-500">
+          Aucun historique
         </div>
-        <DataTable
-          v-else
-          :data="items"
-          :columns="columns"
-          :is-loading="false"
-          title=""
-          :show-edit="authStore.canWrite"
-          :show-delete="authStore.canWrite"
-          @edit="handleEdit"
-          @delete="handleDelete"
-        >
-          <template #cell-location="{ item }">
-            <div v-if="item.location" class="text-sm text-gray-900">
-              {{ item.location.name }}
+        <div v-else class="space-y-3">
+          <div
+            v-for="entry in history"
+            :key="entry.id"
+            class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg"
+          >
+            <div class="flex-1">
+              <div class="text-sm font-medium text-gray-900">{{ entry.title }}</div>
+              <div v-if="entry.description" class="text-xs text-gray-600 mt-1">{{ entry.description }}</div>
+              <div class="text-xs text-gray-500 mt-1">{{ formatDateTime(entry.timestamp) }}</div>
             </div>
-            <span v-else class="text-sm text-gray-500">Non localisé</span>
-          </template>
-
-          <template #cell-codeBarre="{ item }">
-            <span v-if="item.codeBarre" class="font-mono text-sm text-gray-900">
-              {{ item.codeBarre }}
-            </span>
-            <span v-else class="text-sm text-gray-500">-</span>
-          </template>
-
-          <template #cell-createdAt="{ item }">
-            <div class="text-sm text-gray-900">
-              {{ formatDate(item.createdAt) }}
-            </div>
-          </template>
-
-          <template #actions="{ item }">
-            <div v-if="item && item.id" class="flex items-center space-x-2">
-              <RouterLink
-                :to="`/items/${item.id}`"
-                class="text-primary-600 hover:text-primary-900 text-sm"
-              >
-                Voir
-              </RouterLink>
-              <button
-                @click="handleEdit(item)"
-                class="text-primary-600 hover:text-primary-900 text-sm"
-              >
-                Modifier
-              </button>
-              <button
-                @click="handleDelete(item)"
-                class="text-danger-600 hover:text-danger-900 text-sm"
-              >
-                Supprimer
-              </button>
-            </div>
-          </template>
-        </DataTable>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Modals -->
-    <CreateItemModal
-      v-if="showCreateItemModal"
-      :preselected-model-id="modelId"
-      @close="showCreateItemModal = false"
-      @created="handleItemCreated"
-    />
-    
-    <EditItemModal
-      v-if="showEditModalItem && selectedItem"
-      :item="selectedItem"
-      @close="showEditModalItem = false"
-      @updated="handleItemUpdated"
-    />
-    
     <EditModelModal
       v-if="showEditModal && model"
       :model="model"
@@ -206,28 +215,42 @@
       @updated="handleModelUpdated"
     />
     
-    <DeleteConfirmModal
-      v-if="showDeleteModal && selectedItem"
-      :item="selectedItem"
-      @close="showDeleteModal = false"
-      @confirmed="handleItemDeleted"
+    <MoveModelModal
+      v-if="showMoveModal && model"
+      :model="model"
+      @close="showMoveModal = false"
+      @moved="handleModelMoved"
+    />
+    
+    <AssignModelModal
+      v-if="showAssignModal && model"
+      :modelId="model.id"
+      @close="showAssignModal = false"
+      @created="handleAssignmentCreated"
+    />
+    
+    <SetItemStatusModal
+      v-if="showStatusModal && model"
+      :modelId="model.id"
+      @close="showStatusModal = false"
+      @updated="handleStatusUpdated"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
-import { PlusIcon } from '@heroicons/vue/24/outline'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useMaterialModel, useModelItems, useModelItemsCount } from '@/composables/useMaterialModels'
-import DataTable from '@/components/DataTable.vue'
-import CreateItemModal from '@/components/modals/CreateItemModal.vue'
-import EditItemModal from '@/components/modals/EditItemModal.vue'
+import { useMaterialModel, useModelHistory } from '@/composables/useMaterialModels'
+import { useAssignmentsByModel } from '@/composables/useAssignments'
+import { useModelActiveStatus } from '@/composables/useStatuses'
 import EditModelModal from '@/components/modals/EditModelModal.vue'
-import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
-import { formatDate } from '@/utils/formatDate'
-import type { Item } from '@/types'
+import MoveModelModal from '@/components/modals/MoveModelModal.vue'
+import AssignModelModal from '@/components/modals/AssignModelModal.vue'
+import SetItemStatusModal from '@/components/modals/SetItemStatusModal.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
+import { formatDate, formatDateTime } from '@/utils/formatDate'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -235,50 +258,31 @@ const modelId = route.params.id as string
 
 // Queries
 const { data: model, isLoading: isLoadingModel } = useMaterialModel(modelId)
-const { data: items, isLoading: isLoadingItems } = useModelItems(modelId)
-const { data: itemsCount } = useModelItemsCount(modelId)
+const { data: assignments, isLoading: isLoadingAssignments } = useAssignmentsByModel(modelId)
+const { data: activeStatuses, isLoading: isLoadingStatuses } = useModelActiveStatus(modelId)
+const { data: history, isLoading: isLoadingHistory } = useModelHistory(modelId)
 
 // État local
-const showCreateItemModal = ref(false)
 const showEditModal = ref(false)
-const showEditModalItem = ref(false)
-const showDeleteModal = ref(false)
-const selectedItem = ref<Item | null>(null)
-
-// Colonnes du tableau
-const columns = [
-  { key: 'codeBarre', label: 'Code-barres', sortable: true },
-  { key: 'location', label: 'Emplacement', sortable: true },
-  { key: 'createdAt', label: 'Créé le', sortable: true },
-]
+const showMoveModal = ref(false)
+const showAssignModal = ref(false)
+const showStatusModal = ref(false)
 
 // Actions
-const handleEdit = (item: Item) => {
-  selectedItem.value = item
-  showEditModalItem.value = true
-}
-
-const handleDelete = (item: Item) => {
-  selectedItem.value = item
-  showDeleteModal.value = true
-}
-
-const handleItemCreated = () => {
-  showCreateItemModal.value = false
-}
-
-const handleItemUpdated = () => {
-  showEditModalItem.value = false
-  selectedItem.value = null
-}
-
-const handleItemDeleted = () => {
-  showDeleteModal.value = false
-  selectedItem.value = null
-}
-
 const handleModelUpdated = () => {
   showEditModal.value = false
+}
+
+const handleModelMoved = () => {
+  showMoveModal.value = false
+}
+
+const handleAssignmentCreated = () => {
+  showAssignModal.value = false
+}
+
+const handleStatusUpdated = () => {
+  showStatusModal.value = false
 }
 </script>
 
