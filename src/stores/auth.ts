@@ -115,7 +115,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   const refreshTokenAction = async (): Promise<void> => {
     if (!refreshToken.value) {
-      throw new Error('Aucun refresh token disponible')
+      // Si pas de refresh token, déconnecter silencieusement
+      console.warn('Aucun refresh token disponible, déconnexion...')
+      logout()
+      // Lancer une erreur avec un statusCode 401 pour être cohérent avec les autres erreurs d'auth
+      const error: any = new Error('Aucun refresh token disponible')
+      error.statusCode = 401
+      throw error
     }
 
     try {
@@ -125,9 +131,12 @@ export const useAuthStore = defineStore('auth', () => {
       
       accessToken.value = response.accessToken
       localStorage.setItem('accessToken', response.accessToken)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors du refresh token:', error)
-      logout()
+      // Si l'erreur indique que le refresh token est invalide ou expiré, nettoyer
+      if (error?.statusCode === 401 || error?.statusCode === 403 || error?.statusCode === 400) {
+        logout()
+      }
       throw error
     }
   }

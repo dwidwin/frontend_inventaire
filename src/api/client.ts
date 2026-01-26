@@ -4,6 +4,16 @@ import type { ApiError } from '@/types'
 
 // Configuration de base
 const API_URL = import.meta.env.VITE_API_URL || 'https://api-inventory.edwinbouchenna.fr'
+const BASE_PATH = import.meta.env.BASE_URL || '/'
+
+// Fonction utilitaire pour construire une URL avec le base path
+const buildUrl = (path: string): string => {
+  // Enlever le slash initial si présent
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path
+  // Ajouter le base path (qui se termine déjà par /)
+  const base = BASE_PATH.endsWith('/') ? BASE_PATH.slice(0, -1) : BASE_PATH
+  return `${base}/${cleanPath}`
+}
 
 // Instance Axios principale
 export const apiClient: AxiosInstance = axios.create({
@@ -65,7 +75,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         // Refresh échoué, rediriger vers login
         authStore.logout()
-        window.location.href = '/login'
+        window.location.href = buildUrl('/login')
         return Promise.reject(refreshError)
       }
     }
@@ -109,7 +119,7 @@ uploadClient.interceptors.response.use(
         return uploadClient(originalRequest)
       } catch (refreshError) {
         authStore.logout()
-        window.location.href = '/login'
+        window.location.href = buildUrl('/login')
         return Promise.reject(refreshError)
       }
     }
@@ -119,34 +129,56 @@ uploadClient.interceptors.response.use(
 )
 
 // Fonction utilitaire pour extraire les erreurs API
-export const extractApiError = (error: AxiosError): ApiError => {
+export const extractApiError = (error: AxiosError | Error): ApiError => {
+  // Si c'est une erreur JavaScript standard (pas Axios), la retourner telle quelle
+  if (!('isAxiosError' in error) || !(error as AxiosError).isAxiosError) {
+    // Vérifier si c'est une erreur de refresh token
+    if (error.message.includes('Aucun refresh token disponible')) {
+      return {
+        message: error.message,
+        statusCode: 401,
+        error: 'NoRefreshToken',
+        details: error.message,
+      }
+    }
+    // Autre erreur JavaScript
+    return {
+      message: error.message || 'Une erreur est survenue',
+      statusCode: 500,
+      error: error.name || 'Error',
+      details: error.message,
+    }
+  }
+
+  const axiosError = error as AxiosError
+
   // Gestion des erreurs réseau (CORS, timeout, etc.)
-  if (!error.response) {
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+  if (!axiosError.response) {
+    if (axiosError.code === 'ERR_NETWORK' || axiosError.message === 'Network Error') {
       return {
         message: 'Erreur de connexion au serveur. Vérifiez votre connexion internet et que le serveur est accessible.',
         statusCode: 0,
         error: 'Network Error',
-        details: error.message,
+        details: axiosError.message,
       }
     }
-    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+    if (axiosError.code === 'ECONNABORTED' || axiosError.message.includes('timeout')) {
       return {
         message: 'La requête a expiré. Le serveur met trop de temps à répondre.',
         statusCode: 408,
         error: 'Timeout',
-        details: error.message,
+        details: axiosError.message,
       }
     }
   }
   
-  const response = error.response?.data as any
+  const response = axiosError.response?.data as any
   
   return {
-    message: response?.message || error.message || 'Une erreur est survenue',
-    statusCode: error.response?.status || 500,
-    error: response?.error || error.code,
-    details: response?.details || error.message,
+    message: response?.message || axiosError.message || 'Une erreur est survenue',
+    statusCode: axiosError.response?.status || 500,
+    error: response?.error || axiosError.code,
+    details: response?.details || axiosError.message,
   }
 }
 
