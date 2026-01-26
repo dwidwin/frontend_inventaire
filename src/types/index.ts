@@ -72,8 +72,13 @@ export interface UpdateCategoryDto {
 // Modèles de matériel
 export interface MaterialModel extends BaseEntity {
   name: string
-  categoryId: string
-  category?: Category
+  categoryIds: string[]
+  categories?: Category[]
+  locationId?: string
+  location?: Location
+  codeBarre?: string
+  etat?: string
+  photoUrl?: string
   referenceFournisseur?: string
   description?: string
   mainImageUrl?: string
@@ -83,16 +88,32 @@ export interface MaterialModel extends BaseEntity {
 
 export interface CreateMaterialModelDto {
   name: string
-  categoryId: string
+  categoryIds: string[]
   referenceFournisseur?: string
   description?: string
+  locationId?: string
+  codeBarre?: string
+  etat?: string
+  photoUrl?: string
 }
 
 export interface UpdateMaterialModelDto {
   name?: string
-  categoryId?: string
+  categoryIds?: string[]
   referenceFournisseur?: string
   description?: string
+  locationId?: string
+  codeBarre?: string
+  etat?: string
+  photoUrl?: string
+}
+
+export interface MoveModelDto {
+  locationId?: string | null
+}
+
+export interface UpdateModelCategoriesDto {
+  categoryIds: string[]
 }
 
 // Emplacements
@@ -119,36 +140,6 @@ export interface UpdateLocationDto {
   parentId?: string
 }
 
-// Items
-export interface Item extends BaseEntity {
-  modelId: string
-  model?: MaterialModel
-  locationId?: string
-  location?: Location
-  codeBarre?: string
-  photoUrl?: string
-  etat?: string
-  createdBy?: User
-  updatedBy?: User
-}
-
-export interface CreateItemDto {
-  modelId: string
-  locationId?: string
-  codeBarre?: string
-  etat?: string
-}
-
-export interface UpdateItemDto {
-  modelId?: string
-  locationId?: string
-  codeBarre?: string
-  etat?: string
-}
-
-export interface MoveItemDto {
-  locationId?: string | null
-}
 
 // Équipes
 export interface Team extends BaseEntity {
@@ -171,8 +162,8 @@ export interface UpdateTeamDto {
 
 // Affectations
 export interface Assignment extends BaseEntity {
-  itemId: string
-  item?: Item
+  modelId: string
+  model?: MaterialModel
   userId?: string
   user?: User
   teamId?: string
@@ -185,7 +176,7 @@ export interface Assignment extends BaseEntity {
 }
 
 export interface CreateAssignmentDto {
-  itemId: string
+  modelId: string
   userId?: string
   teamId?: string
   startAt?: string
@@ -235,8 +226,8 @@ export interface UpdateStatusDto {
 }
 
 export interface ItemStatus extends BaseEntity {
-  itemId: string
-  item?: Item
+  modelId: string
+  model?: MaterialModel
   statusId?: string
   statusKey?: string
   status?: Status
@@ -248,7 +239,7 @@ export interface ItemStatus extends BaseEntity {
 }
 
 export interface SetItemStatusDto {
-  itemId: string
+  modelId: string
   statusId?: string
   statusKey?: string
   notes?: string
@@ -269,14 +260,14 @@ export interface Transaction extends BaseEntity {
   depositAmount?: number
   penaltyAmount?: number
   notes?: string
-  items?: TransactionItem[]
+  lines?: TransactionItem[]
 }
 
 export interface TransactionItem extends BaseEntity {
   transactionId: string
   transaction?: Transaction
-  itemId: string
-  item?: Item
+  modelId: string
+  model?: MaterialModel
   unitPrice?: number
   deposit?: number
   dueAt?: string
@@ -284,38 +275,31 @@ export interface TransactionItem extends BaseEntity {
 }
 
 export interface CreateRentalDto {
-  counterpartyUserId?: string
-  counterpartyTeamId?: string
+  userId?: string
+  teamId?: string
   externalName?: string
   dueAt?: string
-  totalAmount?: number
-  depositAmount?: number
   notes?: string
-  items: {
-    itemId: string
+  models: {
+    modelId: string
     unitPrice?: number
     deposit?: number
-    dueAt?: string
   }[]
 }
 
 export interface CreateSaleDto {
-  counterpartyUserId?: string
-  counterpartyTeamId?: string
+  userId?: string
+  teamId?: string
   externalName?: string
-  totalAmount?: number
   notes?: string
-  items: {
-    itemId: string
+  models: {
+    modelId: string
     unitPrice?: number
   }[]
 }
 
 export interface ReturnRentalDto {
-  items: {
-    itemId: string
-    returnedAt: string
-  }[]
+  modelIds?: string[]
   penaltyAmount?: number
   notes?: string
 }
@@ -358,8 +342,8 @@ export interface AuditLog extends BaseEntity {
   userAgent?: string
 }
 
-// Historique d'item (timeline agrégée)
-export interface ItemHistoryEntry {
+// Historique de modèle (timeline agrégée)
+export interface ModelHistoryEntry {
   id: string
   type: 'assignment' | 'status' | 'transaction' | 'audit'
   title: string
@@ -368,6 +352,9 @@ export interface ItemHistoryEntry {
   user?: User
   data?: Record<string, any>
 }
+
+// Alias pour compatibilité
+export type ItemHistoryEntry = ModelHistoryEntry
 
 // Réponses API
 export interface ApiResponse<T = any> {

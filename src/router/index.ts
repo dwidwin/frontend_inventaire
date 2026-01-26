@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/auth/LoginView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import CatalogueView from '@/views/catalogue/CatalogueView.vue'
-import ItemsView from '@/views/items/ItemsView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const router = createRouter({
@@ -38,8 +37,6 @@ const router = createRouter({
       children: [
         { path: '', name: 'Dashboard', component: DashboardView },
         { path: 'catalogue', name: 'Catalogue', component: CatalogueView },
-        { path: 'items', name: 'Items', component: ItemsView },
-        { path: 'items/:id', name: 'ItemDetail', component: () => import('@/views/items/ItemDetailView.vue') },
         { path: 'categories', name: 'Categories', component: () => import('@/views/categories/CategoriesView.vue'), meta: { requiresAdmin: true } },
         { path: 'models', name: 'Models', component: () => import('@/views/models/ModelsView.vue'), meta: { requiresAdmin: true } },
         { path: 'models/:id', name: 'ModelDetail', component: () => import('@/views/models/ModelDetailView.vue'), meta: { requiresAdmin: true } },

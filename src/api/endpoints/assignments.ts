@@ -17,9 +17,9 @@ export const assignmentsApi = {
     return apiGet<Assignment>(`/api/assignments/${id}`)
   },
 
-  // Affectations par item
-  getByItem: (itemId: string): Promise<Assignment[]> => {
-    return apiGet<Assignment[]>(`/api/assignments/item/${itemId}`)
+  // Affectations par modèle
+  getByModel: (modelId: string): Promise<Assignment[]> => {
+    return apiGet<Assignment[]>(`/api/assignments/model/${modelId}`)
   },
 
   // Affectations par équipe

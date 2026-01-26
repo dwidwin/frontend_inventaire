@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/api/client'
-import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, Item } from '@/types'
+import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, MoveModelDto, UpdateModelCategoriesDto, ModelHistoryEntry } from '@/types'
 
 export const materialModelsApi = {
   // Liste des modèles
@@ -13,18 +13,8 @@ export const materialModelsApi = {
   },
 
   // Détail d'un modèle
-  get: (id: string): Promise<MaterialModel & { itemsCount?: number }> => {
-    return apiGet<MaterialModel & { itemsCount?: number }>(`/api/material-models/${id}`)
-  },
-
-  // Liste des items d'un modèle
-  getItems: (id: string): Promise<Item[]> => {
-    return apiGet<Item[]>(`/api/material-models/${id}/items`)
-  },
-
-  // Nombre d'items d'un modèle
-  getItemsCount: (id: string): Promise<number> => {
-    return apiGet<number>(`/api/material-models/${id}/items-count`)
+  get: (id: string): Promise<MaterialModel> => {
+    return apiGet<MaterialModel>(`/api/material-models/${id}`)
   },
 
   // Créer un modèle
@@ -35,6 +25,21 @@ export const materialModelsApi = {
   // Modifier un modèle
   update: (id: string, data: UpdateMaterialModelDto): Promise<MaterialModel> => {
     return apiPatch<MaterialModel>(`/api/material-models/${id}`, data)
+  },
+
+  // Déplacer un modèle
+  move: (id: string, data: MoveModelDto): Promise<MaterialModel> => {
+    return apiPatch<MaterialModel>(`/api/material-models/${id}/move`, data)
+  },
+
+  // Mettre à jour les catégories d'un modèle
+  updateCategories: (id: string, data: UpdateModelCategoriesDto): Promise<MaterialModel> => {
+    return apiPatch<MaterialModel>(`/api/material-models/${id}/categories`, data)
+  },
+
+  // Historique d'un modèle
+  getHistory: (id: string): Promise<ModelHistoryEntry[]> => {
+    return apiGet<ModelHistoryEntry[]>(`/api/material-models/${id}/history`)
   },
 
   // Supprimer un modèle

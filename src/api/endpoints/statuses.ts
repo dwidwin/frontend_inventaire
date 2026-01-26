@@ -27,23 +27,23 @@ export const statusesApi = {
     return apiDelete<void>(`/api/statuses/${id}`)
   },
 
-  // Définir le statut d'un item
+  // Définir le statut d'un modèle
   setItemStatus: (data: SetItemStatusDto): Promise<ItemStatus> => {
     return apiPost<ItemStatus>('/api/item-statuses', data)
   },
 
-  // Statuts actifs d'un item (tableau, un par groupe)
-  getItemActiveStatus: (itemId: string): Promise<ItemStatus[]> => {
-    return apiGet<ItemStatus[]>(`/api/item-statuses/item/${itemId}/active`)
+  // Statuts actifs d'un modèle (tableau, un par groupe)
+  getModelActiveStatus: (modelId: string): Promise<ItemStatus[]> => {
+    return apiGet<ItemStatus[]>(`/api/item-statuses/model/${modelId}/active`)
   },
 
-  // Historique des statuts d'un item
-  getItemStatusHistory: (itemId: string): Promise<ItemStatus[]> => {
-    return apiGet<ItemStatus[]>(`/api/item-statuses/item/${itemId}/history`)
+  // Historique des statuts d'un modèle
+  getModelStatusHistory: (modelId: string): Promise<ItemStatus[]> => {
+    return apiGet<ItemStatus[]>(`/api/item-statuses/model/${modelId}/history`)
   },
 
-  // Fermer les statuts actifs d'un item pour un groupe spécifique
-  closeActiveByGroup: (itemId: string, group: string): Promise<void> => {
-    return apiDelete<void>(`/api/item-statuses/item/${itemId}/group/${group}`)
+  // Fermer les statuts actifs d'un modèle pour un groupe spécifique
+  closeActiveByGroup: (modelId: string, group: string): Promise<void> => {
+    return apiDelete<void>(`/api/item-statuses/model/${modelId}/group/${group}`)
   },
 }

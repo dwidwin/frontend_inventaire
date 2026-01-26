@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints'
-import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, Item } from '@/types'
-import { computed, ref, type Ref, type ComputedRef } from 'vue'
+import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, MoveModelDto, UpdateModelCategoriesDto, ModelHistoryEntry } from '@/types'
+import { computed, type Ref, type ComputedRef } from 'vue'
 
 export const useMaterialModels = () => {
   return useQuery({
@@ -30,23 +30,21 @@ export const useSearchMaterialModels = (query: Ref<string> | ComputedRef<string>
   })
 }
 
-export const useModelItems = (modelId: string) => {
+export const useModelHistory = (modelId: string) => {
   return useQuery({
-    queryKey: ['material-models', modelId, 'items'],
-    queryFn: () => materialModelsApi.getItems(modelId),
+    queryKey: ['material-models', modelId, 'history'],
+    queryFn: async () => {
+      try {
+        return await materialModelsApi.getHistory(modelId)
+      } catch (error: any) {
+        if (error?.response?.status === 404) {
+          console.warn(`Historique introuvable pour le modèle ${modelId}`)
+          return []
+        }
+        throw error
+      }
+    },
     enabled: !!modelId,
-  })
-}
-
-export const useModelItemsCount = (modelId: Ref<string> | ComputedRef<string> | string) => {
-  const id = typeof modelId === 'string' 
-    ? computed(() => modelId)
-    : computed(() => modelId.value as string)
-  
-  return useQuery({
-    queryKey: computed(() => ['material-models', id.value, 'items-count']),
-    queryFn: () => materialModelsApi.getItemsCount(id.value),
-    enabled: computed(() => !!id.value),
   })
 }
 
@@ -81,6 +79,32 @@ export const useDeleteMaterialModel = () => {
     mutationFn: (id: string) => materialModelsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['material-models'] })
+    },
+  })
+}
+
+export const useMoveModel = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: MoveModelDto }) =>
+      materialModelsApi.move(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['material-models'] })
+      queryClient.invalidateQueries({ queryKey: ['material-models', id] })
+    },
+  })
+}
+
+export const useUpdateModelCategories = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateModelCategoriesDto }) =>
+      materialModelsApi.updateCategories(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['material-models'] })
+      queryClient.invalidateQueries({ queryKey: ['material-models', id] })
     },
   })
 }

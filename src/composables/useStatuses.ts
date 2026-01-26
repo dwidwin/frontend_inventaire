@@ -60,35 +60,35 @@ export const useSetItemStatus = () => {
   return useMutation({
     mutationFn: (data: SetItemStatusDto) => statusesApi.setItemStatus(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['item-statuses', 'active', variables.itemId] })
-      queryClient.invalidateQueries({ queryKey: ['item-statuses', 'history', variables.itemId] })
+      queryClient.invalidateQueries({ queryKey: ['item-statuses', 'active', variables.modelId] })
+      queryClient.invalidateQueries({ queryKey: ['item-statuses', 'history', variables.modelId] })
       queryClient.invalidateQueries({ queryKey: ['item-statuses'] })
-      queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['material-models'] })
     },
   })
 }
 
-export const useItemActiveStatus = (itemId: string) => {
+export const useModelActiveStatus = (modelId: string) => {
   return useQuery({
-    queryKey: ['item-statuses', 'active', itemId],
-    queryFn: () => statusesApi.getItemActiveStatus(itemId),
-    enabled: !!itemId,
+    queryKey: ['item-statuses', 'active', modelId],
+    queryFn: () => statusesApi.getModelActiveStatus(modelId),
+    enabled: !!modelId,
   })
 }
 
-export const useItemStatusHistory = (itemId: string) => {
+export const useModelStatusHistory = (modelId: string) => {
   return useQuery({
-    queryKey: ['item-statuses', 'history', itemId],
-    queryFn: () => statusesApi.getItemStatusHistory(itemId),
-    enabled: !!itemId,
+    queryKey: ['item-statuses', 'history', modelId],
+    queryFn: () => statusesApi.getModelStatusHistory(modelId),
+    enabled: !!modelId,
   })
 }
 
 /**
  * Grouper les statuts actifs par groupe
  */
-export const useItemActiveStatusByGroup = (itemId: string) => {
-  const { data: activeStatuses } = useItemActiveStatus(itemId)
+export const useModelActiveStatusByGroup = (modelId: string) => {
+  const { data: activeStatuses } = useModelActiveStatus(modelId)
   
   return computed(() => {
     const grouped: Record<StatusGroup, ItemStatus | null> = {
@@ -114,8 +114,14 @@ export const useItemActiveStatusByGroup = (itemId: string) => {
 /**
  * Obtenir le statut actif pour un groupe spécifique
  */
-export const useItemActiveStatusForGroup = (itemId: string, group: StatusGroup) => {
-  const grouped = useItemActiveStatusByGroup(itemId)
+export const useModelActiveStatusForGroup = (modelId: string, group: StatusGroup) => {
+  const grouped = useModelActiveStatusByGroup(modelId)
   
   return computed(() => grouped.value[group] || null)
 }
+
+// Aliases pour compatibilité
+export const useItemActiveStatus = useModelActiveStatus
+export const useItemStatusHistory = useModelStatusHistory
+export const useItemActiveStatusByGroup = useModelActiveStatusByGroup
+export const useItemActiveStatusForGroup = useModelActiveStatusForGroup

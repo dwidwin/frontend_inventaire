@@ -24,11 +24,11 @@ export const useAssignment = (id: string) => {
   })
 }
 
-export const useAssignmentsByItem = (itemId: string) => {
+export const useAssignmentsByModel = (modelId: string) => {
   return useQuery({
-    queryKey: ['assignments', 'item', itemId],
-    queryFn: () => assignmentsApi.getByItem(itemId),
-    enabled: !!itemId,
+    queryKey: ['assignments', 'model', modelId],
+    queryFn: () => assignmentsApi.getByModel(modelId),
+    enabled: !!modelId,
   })
 }
 
