@@ -201,7 +201,13 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import type { MaterialModel, Status } from '@/types'
 
 // Queries
-const { data: models, isLoading } = useMaterialModels()
+const { data: modelsResponse, isLoading } = useMaterialModels()
+
+// Extraire le tableau de modèles de la réponse paginée (comme pour usersApi)
+const modelsArray = computed(() => {
+  return modelsResponse.value?.data || []
+})
+
 const { data: categories } = useCategories()
 const { data: locations } = useLocations()
 const { data: statuses } = useStatuses()
@@ -212,10 +218,18 @@ const statusesList = computed(() => {
 })
 
 // Récupérer les statuts actifs pour tous les modèles
-const statusQueries = useQueries({
-  queries: computed(() => {
-    if (!models.value) return []
-    return models.value.map((model) => ({
+// Créer un computed séparé pour les queries pour éviter les problèmes de réactivité
+const statusQueriesConfig = computed(() => {
+  // Utiliser modelsArray qui garantit toujours un tableau
+  const modelsList = modelsArray.value
+  
+  // Double vérification : s'assurer que modelsList est bien un tableau
+  if (!Array.isArray(modelsList)) {
+    return []
+  }
+  
+  try {
+    return modelsList.map((model) => ({
       queryKey: ['item-statuses', 'active', model.id],
       queryFn: async () => {
         const { statusesApi } = await import('@/api/endpoints/statuses')
@@ -223,15 +237,23 @@ const statusQueries = useQueries({
       },
       enabled: !!model.id,
     }))
-  }),
+  } catch (error) {
+    console.error('Erreur lors du mapping des modèles:', error, 'modelsList:', modelsList)
+    return []
+  }
+})
+
+const statusQueries = useQueries({
+  queries: statusQueriesConfig,
 })
 
 // Mapper les statuts actifs par modèle ID
 const modelStatusesMap = computed(() => {
   const map: Record<string, any[]> = {}
-  if (!models.value) return map
+  const modelsList = modelsArray.value
+  if (!modelsList || modelsList.length === 0) return map
   
-  models.value.forEach((model, index) => {
+  modelsList.forEach((model, index) => {
     const queryResult = statusQueries.value[index]
     if (!queryResult || !queryResult.isSuccess) return
     
@@ -331,7 +353,8 @@ const resetFilters = () => {
 
 // Modèles filtrés
 const filteredModels = computed(() => {
-  let result = (models.value || []).filter(Boolean) as MaterialModel[]
+  // Utiliser modelsArray qui garantit toujours un tableau
+  let result = modelsArray.value.filter(Boolean) as MaterialModel[]
 
   // Recherche textuelle
   if (searchQuery.value) {

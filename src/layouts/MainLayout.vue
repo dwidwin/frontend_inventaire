@@ -1,11 +1,20 @@
 <template>
   <div class="h-screen flex overflow-hidden bg-gray-100">
+    <!-- Skip to main content link -->
+    <a 
+      href="#main-content" 
+      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary-600 focus:text-white focus:rounded-md"
+    >
+      Aller au contenu principal
+    </a>
+    
     <!-- Sidebar -->
-    <div 
+    <nav 
       :class="[
         'fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       ]"
+      aria-label="Navigation principale"
     >
       <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200">
         <h1 class="text-xl font-semibold text-gray-900">Inventaire Club</h1>
@@ -31,7 +40,7 @@
           />
         </template>
       </nav>
-    </div>
+    </nav>
 
     <!-- Overlay pour mobile -->
     <div
@@ -103,7 +112,7 @@
       </header>
 
       <!-- Contenu -->
-      <main class="flex-1 overflow-y-auto">
+      <main id="main-content" class="flex-1 overflow-y-auto" role="main">
         <div class="py-6">
           <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <RouterView />
@@ -158,7 +167,6 @@ const navigationItems = computed(() => {
       subItems: [
         { name: 'categories', label: 'Catégories', href: '/categories' },
         { name: 'models', label: 'Modèles', href: '/models' },
-        { name: 'items', label: 'Items', href: '/items' },
         { name: 'transactions', label: 'Transactions', href: '/transactions' },
         { name: 'statuses', label: 'Statuts', href: '/statuses' },
         { name: 'users', label: 'Gestion des utilisateurs', href: '/users' },

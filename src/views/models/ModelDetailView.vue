@@ -229,7 +229,7 @@
       @created="handleAssignmentCreated"
     />
     
-    <SetItemStatusModal
+    <SetModelStatusModal
       v-if="showStatusModal && model"
       :modelId="model.id"
       @close="showStatusModal = false"
@@ -248,7 +248,7 @@ import { useModelActiveStatus } from '@/composables/useStatuses'
 import EditModelModal from '@/components/modals/EditModelModal.vue'
 import MoveModelModal from '@/components/modals/MoveModelModal.vue'
 import AssignModelModal from '@/components/modals/AssignModelModal.vue'
-import SetItemStatusModal from '@/components/modals/SetItemStatusModal.vue'
+import SetModelStatusModal from '@/components/modals/SetModelStatusModal.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { formatDate, formatDateTime } from '@/utils/formatDate'
 

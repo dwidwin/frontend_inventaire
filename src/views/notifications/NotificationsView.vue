@@ -46,6 +46,7 @@ import { ref } from 'vue'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 import { useNotifications, useMarkNotificationAsRead } from '@/composables/useNotifications'
+import { logger } from '@/utils/logger'
 import NotificationItem from '@/components/NotificationItem.vue'
 
 const authStore = useAuthStore()
@@ -62,7 +63,7 @@ const handleMarkAsRead = async (id: string) => {
   try {
     await markAsReadMutation.mutateAsync(id)
   } catch (error) {
-    console.error('Erreur lors du marquage de la notification:', error)
+    logger.error('Erreur lors du marquage de la notification:', error)
   }
 }
 </script>

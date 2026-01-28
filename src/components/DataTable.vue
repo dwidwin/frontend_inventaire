@@ -29,9 +29,9 @@
 
     <!-- Tableau -->
     <div class="overflow-x-auto">
-      <table class="table">
+      <table class="table" role="table" aria-label="Tableau de données">
         <thead>
-          <tr>
+          <tr role="row">
             <th
               v-for="column in columns"
               :key="column.key"
@@ -40,6 +40,11 @@
                 column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
               ]"
               @click="column.sortable ? handleSort(column.key) : null"
+              :aria-sort="column.sortable && sortBy === column.key ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'"
+              :tabindex="column.sortable ? 0 : -1"
+              @keydown.enter="column.sortable ? handleSort(column.key) : null"
+              @keydown.space.prevent="column.sortable ? handleSort(column.key) : null"
+              role="columnheader"
             >
               <div class="flex items-center space-x-1">
                 <span>{{ column.label }}</span>
@@ -59,7 +64,11 @@
                 </div>
               </div>
             </th>
-            <th v-if="hasActions" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th 
+              v-if="hasActions" 
+              class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+              role="columnheader"
+            >
               Actions
             </th>
           </tr>
@@ -82,6 +91,7 @@
             v-for="(item, index) in paginatedData"
             :key="getItemKey(item, index)"
             class="hover:bg-gray-50"
+            role="row"
           >
             <td
               v-for="column in columns"

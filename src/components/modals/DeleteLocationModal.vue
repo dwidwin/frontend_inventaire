@@ -53,6 +53,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useDeleteLocation } from '@/composables/useLocations'
+import { useToast } from '@/composables/useToast'
 import type { Location } from '@/types'
 
 const props = defineProps<{
@@ -65,6 +66,7 @@ const emit = defineEmits<{
 }>()
 
 const deleteLocationMutation = useDeleteLocation()
+const toast = useToast()
 const isDeleting = ref(false)
 
 const hasChildren = computed(() => {
@@ -78,9 +80,9 @@ const handleConfirm = async () => {
     await deleteLocationMutation.mutateAsync(props.location.id)
     emit('confirmed')
     emit('close')
-  } catch (error) {
-    console.error('Erreur lors de la suppression de l\'emplacement:', error)
-    alert('Erreur lors de la suppression de l\'emplacement. Veuillez réessayer.')
+  } catch (error: any) {
+    const errorMessage = error?.message || 'Erreur lors de la suppression de l\'emplacement'
+    toast.error(errorMessage)
   } finally {
     isDeleting.value = false
   }

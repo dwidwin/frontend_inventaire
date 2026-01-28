@@ -142,6 +142,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { XMarkIcon, CameraIcon, ExclamationTriangleIcon, PhotoIcon } from '@heroicons/vue/24/outline'
+import { logger } from '@/utils/logger'
 
 const emit = defineEmits<{
   captured: [file: File]
@@ -181,7 +182,7 @@ const startCamera = async () => {
       videoRef.value.srcObject = stream.value
     }
   } catch (err) {
-    console.error('Erreur accès caméra:', err)
+    logger.error('Erreur accès caméra:', err)
     error.value = 'Impossible d\'accéder à la caméra. Vérifiez les permissions.'
   } finally {
     isLoading.value = false

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { statusesApi } from '@/api/endpoints'
-import type { Status, CreateStatusDto, UpdateStatusDto, ItemStatus, SetItemStatusDto, StatusGroup } from '@/types'
+import type { Status, CreateStatusDto, UpdateStatusDto, ModelStatus, SetModelStatusDto, StatusGroup } from '@/types'
 import { StatusGroup as StatusGroupEnum } from '@/types'
 
 export const useStatuses = () => {
@@ -54,15 +54,15 @@ export const useDeleteStatus = () => {
   })
 }
 
-export const useSetItemStatus = () => {
+export const useSetModelStatus = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: SetItemStatusDto) => statusesApi.setItemStatus(data),
+    mutationFn: (data: SetModelStatusDto) => statusesApi.setModelStatus(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['item-statuses', 'active', variables.modelId] })
-      queryClient.invalidateQueries({ queryKey: ['item-statuses', 'history', variables.modelId] })
-      queryClient.invalidateQueries({ queryKey: ['item-statuses'] })
+      queryClient.invalidateQueries({ queryKey: ['model-statuses', 'active', variables.modelId] })
+      queryClient.invalidateQueries({ queryKey: ['model-statuses', 'history', variables.modelId] })
+      queryClient.invalidateQueries({ queryKey: ['model-statuses'] })
       queryClient.invalidateQueries({ queryKey: ['material-models'] })
     },
   })
@@ -70,7 +70,7 @@ export const useSetItemStatus = () => {
 
 export const useModelActiveStatus = (modelId: string) => {
   return useQuery({
-    queryKey: ['item-statuses', 'active', modelId],
+    queryKey: ['model-statuses', 'active', modelId],
     queryFn: () => statusesApi.getModelActiveStatus(modelId),
     enabled: !!modelId,
   })
@@ -78,7 +78,7 @@ export const useModelActiveStatus = (modelId: string) => {
 
 export const useModelStatusHistory = (modelId: string) => {
   return useQuery({
-    queryKey: ['item-statuses', 'history', modelId],
+    queryKey: ['model-statuses', 'history', modelId],
     queryFn: () => statusesApi.getModelStatusHistory(modelId),
     enabled: !!modelId,
   })
@@ -91,7 +91,7 @@ export const useModelActiveStatusByGroup = (modelId: string) => {
   const { data: activeStatuses } = useModelActiveStatus(modelId)
   
   return computed(() => {
-    const grouped: Record<StatusGroup, ItemStatus | null> = {
+    const grouped: Record<StatusGroup, ModelStatus | null> = {
       [StatusGroupEnum.COMMERCIAL]: null,
       [StatusGroupEnum.AUDIENCE]: null,
       [StatusGroupEnum.CONDITION]: null,
@@ -99,10 +99,10 @@ export const useModelActiveStatusByGroup = (modelId: string) => {
     }
     
     if (activeStatuses.value && activeStatuses.value.length > 0) {
-      activeStatuses.value.forEach(itemStatus => {
-        const group = itemStatus.status?.group
+      activeStatuses.value.forEach(modelStatus => {
+        const group = modelStatus.status?.group
         if (group) {
-          grouped[group] = itemStatus
+          grouped[group] = modelStatus
         }
       })
     }
@@ -120,8 +120,3 @@ export const useModelActiveStatusForGroup = (modelId: string, group: StatusGroup
   return computed(() => grouped.value[group] || null)
 }
 
-// Aliases pour compatibilité
-export const useItemActiveStatus = useModelActiveStatus
-export const useItemStatusHistory = useModelStatusHistory
-export const useItemActiveStatusByGroup = useModelActiveStatusByGroup
-export const useItemActiveStatusForGroup = useModelActiveStatusForGroup

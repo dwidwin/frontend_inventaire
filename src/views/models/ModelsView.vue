@@ -87,6 +87,13 @@
       @close="showEditModelModal = false"
       @updated="handleModelUpdated"
     />
+    
+    <DeleteConfirmModal
+      v-if="showDeleteModelModal && selectedModel"
+      :model="selectedModel"
+      @close="showDeleteModelModal = false; selectedModel = null"
+      @confirmed="confirmDeleteModel"
+    />
   </div>
 </template>
 
@@ -96,22 +103,31 @@ import { RouterLink } from 'vue-router'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import { useQuery, useQueries } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints/materialModels'
+import { useDeleteMaterialModel } from '@/composables/useMaterialModels'
+import { useToast } from '@/composables/useToast'
 import DataTable from '@/components/DataTable.vue'
 import CreateModelModal from '@/components/modals/CreateModelModal.vue'
 import EditModelModal from '@/components/modals/EditModelModal.vue'
+import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
 import type { MaterialModel } from '@/types'
 import { formatDate } from '@/utils/formatDate'
 
 // Queries
-const { data: models, isLoading: isLoadingModels } = useQuery({
+const { data: modelsResponse, isLoading: isLoadingModels } = useQuery({
   queryKey: ['material-models'],
   queryFn: () => materialModelsApi.list(),
 })
 
+// Extraire le tableau de modèles de la réponse paginée
+const models = computed(() => modelsResponse.value?.data || [])
+
+const deleteModelMutation = useDeleteMaterialModel()
+const toast = useToast()
 
 // État local
 const showCreateModelModal = ref(false)
 const showEditModelModal = ref(false)
+const showDeleteModelModal = ref(false)
 const selectedModel = ref<MaterialModel | null>(null)
 
 // Colonnes pour les modèles
@@ -126,6 +142,7 @@ const modelColumns = [
 ]
 
 // Actions
+
 const handleEditModel = (model: MaterialModel) => {
   selectedModel.value = model
   showEditModelModal.value = true

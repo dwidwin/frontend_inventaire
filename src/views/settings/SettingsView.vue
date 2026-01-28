@@ -412,10 +412,13 @@ watch(() => route.query.tab, (newTab) => {
 
 // Queries
 const { data: categories, isLoading: isLoadingCategories } = useCategories()
-const { data: models, isLoading: isLoadingModels } = useQuery({
+const { data: modelsResponse, isLoading: isLoadingModels } = useQuery({
   queryKey: ['material-models'],
   queryFn: () => materialModelsApi.list(),
 })
+
+// Extraire le tableau de modèles de la réponse paginée
+const models = computed(() => modelsResponse.value?.data || [])
 
 const { data: transactions, isLoading: isLoadingTransactions } = useQuery({
   queryKey: ['transactions'],

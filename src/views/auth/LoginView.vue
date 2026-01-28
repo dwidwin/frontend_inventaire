@@ -112,6 +112,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
+import { logger } from '@/utils/logger'
 import type { LoginDto } from '@/types'
 import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm.vue'
 import RegisterForm from '@/components/auth/RegisterForm.vue'
@@ -168,7 +169,7 @@ const handleSubmit = async () => {
     await authStore.login(form)
     router.push('/')
   } catch (error: any) {
-    console.error('Erreur de connexion:', error)
+    logger.error('Erreur de connexion:', error)
     errorMessage.value = error.message || 'Erreur de connexion. Vérifiez vos identifiants.'
   } finally {
     isLoading.value = false

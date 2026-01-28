@@ -145,6 +145,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { authApi } from '@/api/endpoints/auth'
+import { logger } from '@/utils/logger'
 import type { RegisterDto } from '@/types'
 
 defineEmits<{
@@ -266,7 +267,7 @@ const handleSubmit = async () => {
     })
     successMessage.value = 'Votre compte a été créé avec succès. Il est en attente de validation par un administrateur. Vous recevrez un email de confirmation une fois votre compte validé.'
   } catch (error: any) {
-    console.error('Erreur:', error)
+    logger.error('Erreur:', error)
     errorMessage.value = error.message || 'Une erreur est survenue lors de la création du compte. Veuillez réessayer.'
   } finally {
     isLoading.value = false

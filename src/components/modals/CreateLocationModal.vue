@@ -144,6 +144,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { useLocations, useCreateLocation, useUpdateLocation } from '@/composables/useLocations'
 import { getLocationHierarchyPath, getLocationsWithIndent } from '@/utils/locationUtils'
+import { useToast } from '@/composables/useToast'
 import type { CreateLocationDto, UpdateLocationDto, Location } from '@/types'
 
 // Props
@@ -163,6 +164,9 @@ const { data: locations } = useLocations()
 // Mutations
 const createLocationMutation = useCreateLocation()
 const updateLocationMutation = useUpdateLocation()
+
+// Toast
+const toast = useToast()
 
 // État du formulaire
 const isSubmitting = ref(false)
@@ -342,9 +346,9 @@ const handleSubmit = async () => {
     
     handleClose()
     
-  } catch (error) {
-    console.error(`Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de l'emplacement:`, error)
-    alert(`Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de l'emplacement. Veuillez réessayer.`)
+  } catch (error: any) {
+    const errorMessage = error?.message || `Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de l'emplacement`
+    toast.error(errorMessage)
   } finally {
     isSubmitting.value = false
   }

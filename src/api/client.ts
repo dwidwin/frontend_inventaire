@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance, type AxiosResponse, type AxiosError } from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import type { ApiError } from '@/types'
+import { config } from '@/config'
 
 // Configuration de base
 const API_URL = import.meta.env.VITE_API_URL || 'https://api-inventory.edwinbouchenna.fr'
@@ -18,7 +19,7 @@ const buildUrl = (path: string): string => {
 // Instance Axios principale
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: config.api.timeout,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -28,7 +29,7 @@ export const apiClient: AxiosInstance = axios.create({
 // Instance pour les uploads
 export const uploadClient: AxiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 30000,
+  timeout: config.api.uploadTimeout,
   headers: {
     'Content-Type': 'multipart/form-data',
   },
@@ -57,7 +58,7 @@ apiClient.interceptors.response.use(
     return response
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as any
+    const originalRequest = error.config as AxiosError['config'] & { _retry?: boolean }
     
     // Si erreur 401 et pas déjà en cours de refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -106,7 +107,7 @@ uploadClient.interceptors.response.use(
     return response
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as any
+    const originalRequest = error.config as AxiosError['config'] & { _retry?: boolean }
     
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true

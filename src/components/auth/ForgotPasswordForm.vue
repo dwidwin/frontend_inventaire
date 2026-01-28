@@ -65,6 +65,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/endpoints/auth'
+import { logger } from '@/utils/logger'
 
 defineEmits<{
   back: []
@@ -95,7 +96,7 @@ const handleSubmit = async () => {
     await authApi.forgotPassword({ email: email.value })
     successMessage.value = 'Si cet email existe, un lien de réinitialisation a été envoyé à votre adresse email.'
   } catch (error: any) {
-    console.error('Erreur:', error)
+    logger.error('Erreur:', error)
     errorMessage.value = error.message || 'Une erreur est survenue. Veuillez réessayer.'
   } finally {
     isLoading.value = false

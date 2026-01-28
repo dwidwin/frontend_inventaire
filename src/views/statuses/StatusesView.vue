@@ -108,6 +108,7 @@
 import { ref, computed } from 'vue'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import { useStatuses, useDeleteStatus } from '@/composables/useStatuses'
+import { logger } from '@/utils/logger'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import CreateStatusModal from '@/components/modals/CreateStatusModal.vue'
@@ -167,7 +168,7 @@ const handleStatusDeleted = async () => {
     showDeleteStatusModal.value = false
     selectedStatus.value = null
   } catch (error: any) {
-    console.error('Erreur lors de la suppression du statut:', error)
+    logger.error('Erreur lors de la suppression du statut:', error)
     // Le modal gère déjà l'affichage de l'erreur, on ne fait que nettoyer
     if (error?.response?.status === 404) {
       // Si le statut n'existe pas, on ferme quand même

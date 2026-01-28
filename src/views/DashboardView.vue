@@ -150,6 +150,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { assignmentsApi } from '@/api/endpoints/assignments'
 import { transactionsApi } from '@/api/endpoints/transactions'
 import { auditApi } from '@/api/endpoints/audit'
+import { logger } from '@/utils/logger'
 import StatCard from '@/components/StatCard.vue'
 import QuickActionCard from '@/components/QuickActionCard.vue'
 import NotificationItem from '@/components/NotificationItem.vue'
@@ -158,7 +159,7 @@ import ActivityItem from '@/components/ActivityItem.vue'
 const authStore = useAuthStore()
 
 // Queries
-const { data: models, isLoading: isLoadingModels } = useMaterialModels()
+const { data: modelsResponse, isLoading: isLoadingModels } = useMaterialModels()
 const { data: notifications, isLoading: isLoadingNotifications } = useNotifications()
 const unreadNotificationsCount = useUnreadNotificationsCount()
 const markAsReadMutation = useMarkNotificationAsRead()
@@ -180,6 +181,9 @@ const { data: recentActivity, isLoading: isLoadingAudit } = useQuery({
   queryKey: ['audit', 'recent'],
   queryFn: () => auditApi.list({ limit: 5 }),
 })
+
+// Extraire le tableau de modèles de la réponse paginée
+const models = computed(() => modelsResponse.value?.data || [])
 
 // Statistiques calculées
 const stats = computed(() => ({
@@ -203,7 +207,7 @@ const markAsRead = async (id: string) => {
   try {
     await markAsReadMutation.mutateAsync(id)
   } catch (error) {
-    console.error('Erreur lors du marquage de la notification:', error)
+    logger.error('Erreur lors du marquage de la notification:', error)
   }
 }
 </script>

@@ -63,6 +63,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useDeleteStatus } from '@/composables/useStatuses'
+import { useToast } from '@/composables/useToast'
 import type { Status, StatusGroup } from '@/types'
 import { StatusGroup as StatusGroupEnum } from '@/types'
 
@@ -76,6 +77,7 @@ const emit = defineEmits<{
 }>()
 
 const deleteStatusMutation = useDeleteStatus()
+const toast = useToast()
 const isDeleting = ref(false)
 
 const getGroupLabel = (group: StatusGroup): string => {
@@ -90,7 +92,7 @@ const getGroupLabel = (group: StatusGroup): string => {
 
 const handleConfirm = async () => {
   if (!props.status?.id) {
-    alert('Erreur: ID du statut manquant')
+    toast.error('Erreur: ID du statut manquant')
     emit('close')
     return
   }
@@ -99,12 +101,12 @@ const handleConfirm = async () => {
   
   try {
     await deleteStatusMutation.mutateAsync(props.status.id)
+    toast.success('Statut supprimé avec succès')
     emit('confirmed')
     emit('close')
   } catch (error: any) {
-    console.error('Erreur lors de la suppression du statut:', error)
-    const errorMessage = error?.response?.data?.message || error?.message || 'Une erreur est survenue'
-    alert(`Erreur lors de la suppression du statut: ${errorMessage}`)
+    const errorMessage = error?.response?.data?.message || error?.message || 'Erreur lors de la suppression du statut'
+    toast.error(errorMessage)
     // Si le statut n'existe pas, on ferme quand même le modal
     if (error?.response?.status === 404) {
       emit('confirmed') // On confirme pour rafraîchir la liste

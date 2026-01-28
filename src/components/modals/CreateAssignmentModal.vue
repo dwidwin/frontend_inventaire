@@ -220,11 +220,12 @@ const form = ref({
 })
 
 // Queries
-const { data: models, isLoading: isLoadingModels } = useMaterialModels()
+const { data: modelsResponse, isLoading: isLoadingModels } = useMaterialModels()
 const { data: usersResponse, isLoading: isLoadingUsers } = useUsers()
 const { data: teams, isLoading: isLoadingTeams } = useTeams()
 
-// Extraire le tableau d'utilisateurs de la réponse paginée
+// Extraire les tableaux des réponses paginées
+const models = computed(() => modelsResponse.value?.data || [])
 const users = computed(() => usersResponse.value?.data || [])
 
 // Vérifier les affectations actives pour le modèle sélectionné

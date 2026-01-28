@@ -129,6 +129,8 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { useCategories, useCreateCategory, useUpdateCategory } from '@/composables/useCategories'
 import { getCategoryHierarchyPath, getCategoriesWithIndent } from '@/utils/categoryUtils'
+import { useToast } from '@/composables/useToast'
+import { logger } from '@/utils/logger'
 import EntityHistory from '@/components/EntityHistory.vue'
 import type { CreateCategoryDto, UpdateCategoryDto, Category } from '@/types'
 
@@ -149,6 +151,9 @@ const { data: categories } = useCategories()
 // Mutations
 const createCategoryMutation = useCreateCategory()
 const updateCategoryMutation = useUpdateCategory()
+
+// Toast
+const toast = useToast()
 
 // État du formulaire
 const isSubmitting = ref(false)
@@ -291,7 +296,7 @@ const handleSubmit = async () => {
       }
       
       // Debug: Afficher les données envoyées
-      console.log('Données de mise à jour envoyées:', updateData)
+      logger.debug('Données de mise à jour envoyées:', updateData)
       
       await updateCategoryMutation.mutateAsync({
         id: props.category.id,
@@ -314,9 +319,9 @@ const handleSubmit = async () => {
     
     handleClose()
     
-  } catch (error) {
-    console.error(`Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de la catégorie:`, error)
-    alert(`Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de la catégorie. Veuillez réessayer.`)
+  } catch (error: any) {
+    const errorMessage = error?.message || `Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de la catégorie`
+    toast.error(errorMessage)
   } finally {
     isSubmitting.value = false
   }

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { canAccessRoute } from '@/utils/permissions'
 
 // Import des vues
 import LoginView from '@/views/auth/LoginView.vue'
@@ -76,9 +77,8 @@ router.beforeEach(async (to, from, next) => {
   }
   
   // Si authentifié, vérifier les permissions d'accès à la page
-  if (authStore.isAuthenticated) {
-    // Vérifier l'accès selon le rôle utilisateur
-    if (!authStore.canAccessPage(to.path)) {
+  if (authStore.isAuthenticated && authStore.user) {
+    if (!canAccessRoute(to, authStore.user)) {
       // Si user essaie d'accéder à une page non autorisée, rediriger vers catalogue
       if (authStore.isUser) {
         next('/catalogue')
@@ -88,18 +88,6 @@ router.beforeEach(async (to, from, next) => {
       next('/')
       return
     }
-  }
-  
-  // Vérifier les permissions manager
-  if (to.meta.requiresManager && !authStore.isManager) {
-    next('/')
-    return
-  }
-  
-  // Vérifier les permissions admin
-  if (to.meta.requiresAdmin && !authStore.isAdmin) {
-    next('/')
-    return
   }
   
   // Rediriger vers dashboard si déjà connecté et sur login

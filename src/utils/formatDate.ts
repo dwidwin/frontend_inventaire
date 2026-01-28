@@ -1,5 +1,6 @@
 import { format, isValid } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { logger } from './logger'
 
 // Fonction utilitaire pour valider et formater une date de manière sécurisée
 const safeFormatDate = (date: string | Date | null | undefined, formatString: string): string => {
@@ -15,7 +16,7 @@ const safeFormatDate = (date: string | Date | null | undefined, formatString: st
   try {
     return format(dateObj, formatString, { locale: fr })
   } catch (error) {
-    console.warn('Erreur lors du formatage de la date:', error)
+    logger.warn('Erreur lors du formatage de la date:', error)
     return 'Date inconnue'
   }
 }

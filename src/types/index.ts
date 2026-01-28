@@ -225,7 +225,7 @@ export interface UpdateStatusDto {
   sortOrder?: number
 }
 
-export interface ItemStatus extends BaseEntity {
+export interface ModelStatus extends BaseEntity {
   modelId: string
   model?: MaterialModel
   statusId?: string
@@ -238,7 +238,7 @@ export interface ItemStatus extends BaseEntity {
   setBy?: User
 }
 
-export interface SetItemStatusDto {
+export interface SetModelStatusDto {
   modelId: string
   statusId?: string
   statusKey?: string
@@ -353,8 +353,6 @@ export interface ModelHistoryEntry {
   data?: Record<string, any>
 }
 
-// Alias pour compatibilité
-export type ItemHistoryEntry = ModelHistoryEntry
 
 // Réponses API
 export interface ApiResponse<T = any> {

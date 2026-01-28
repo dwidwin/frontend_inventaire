@@ -66,6 +66,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useDeleteMaterialModel } from '@/composables/useMaterialModels'
+import { useToast } from '@/composables/useToast'
+import { logger } from '@/utils/logger'
 import type { MaterialModel } from '@/types'
 
 const props = defineProps<{
@@ -82,6 +84,7 @@ const entity = computed(() => props.model || props.item)
 const entityType = computed(() => props.model ? 'model' : 'item')
 
 const deleteModelMutation = useDeleteMaterialModel()
+const toast = useToast()
 const isDeleting = ref(false)
 
 const handleConfirm = async () => {
@@ -94,13 +97,13 @@ const handleConfirm = async () => {
       await deleteModelMutation.mutateAsync(entity.value.id)
     } else {
       // Fallback pour compatibilité
-      console.warn('Suppression d\'item non supportée')
+      logger.warn('Suppression d\'item non supportée')
     }
     emit('confirmed')
     emit('close')
-  } catch (error) {
-    console.error('Erreur lors de la suppression:', error)
-    alert('Erreur lors de la suppression. Veuillez réessayer.')
+  } catch (error: any) {
+    const errorMessage = error?.message || 'Erreur lors de la suppression'
+    toast.error(errorMessage)
   } finally {
     isDeleting.value = false
   }

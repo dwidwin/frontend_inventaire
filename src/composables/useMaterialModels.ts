@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints'
+import { logger } from '@/utils/logger'
 import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, MoveModelDto, UpdateModelCategoriesDto, ModelHistoryEntry } from '@/types'
 import { computed, type Ref, type ComputedRef } from 'vue'
 
@@ -38,7 +39,7 @@ export const useModelHistory = (modelId: string) => {
         return await materialModelsApi.getHistory(modelId)
       } catch (error: any) {
         if (error?.response?.status === 404) {
-          console.warn(`Historique introuvable pour le modèle ${modelId}`)
+          logger.warn(`Historique introuvable pour le modèle ${modelId}`)
           return []
         }
         throw error

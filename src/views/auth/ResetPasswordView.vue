@@ -116,6 +116,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authApi } from '@/api/endpoints/auth'
+import { logger } from '@/utils/logger'
 
 const route = useRoute()
 const router = useRouter()
@@ -192,7 +193,7 @@ const handleSubmit = async () => {
       router.push('/login')
     }, 3000)
   } catch (error: any) {
-    console.error('Erreur:', error)
+    logger.error('Erreur:', error)
     errorMessage.value = error.message || 'Une erreur est survenue. Le token est peut-être expiré ou invalide.'
   } finally {
     isLoading.value = false

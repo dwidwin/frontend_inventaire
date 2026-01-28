@@ -29,4 +29,16 @@ export const config = {
     staleTime: 5 * 60 * 1000, // 5 minutes
     retryAttempts: 3,
   },
+  
+  // Configuration API
+  api: {
+    timeout: 10000, // 10 secondes
+    uploadTimeout: 30000, // 30 secondes pour les uploads
+  },
+  
+  // Configuration des toasts
+  toast: {
+    defaultDuration: 5000, // 5 secondes
+    errorDuration: 7000, // 7 secondes pour les erreurs
+  },
 }

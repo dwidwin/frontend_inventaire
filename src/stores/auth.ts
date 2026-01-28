@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { apiPost, apiGet } from '@/api/client'
+import { logger } from '@/utils/logger'
+import { storage } from '@/utils/storage'
 import type { User, LoginDto, AuthResponse } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   // État
   const user = ref<User | null>(null)
-  const accessToken = ref<string | null>(localStorage.getItem('accessToken'))
-  const refreshToken = ref<string | null>(localStorage.getItem('refreshToken'))
+  const accessToken = ref<string | null>(storage.getItem('accessToken'))
+  const refreshToken = ref<string | null>(storage.getItem('refreshToken'))
   const isLoading = ref(false)
 
   // Helper pour normaliser le rôle
@@ -50,8 +52,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
     
     // User : accès uniquement à Catalogue et Notifications
-    // Permettre aussi l'accès aux détails d'item (/items/:id) pour la lecture seule
-    // Exclure Dashboard (/), Items list (/items), et toutes les autres pages
     if (isUser.value) {
       // Routes autorisées pour les users
       if (path === '/catalogue' || path === '/notifications') {
@@ -59,11 +59,6 @@ export const useAuthStore = defineStore('auth', () => {
       }
       // Routes qui commencent par /catalogue/ ou /notifications/ (sous-routes)
       if (path.startsWith('/catalogue/') || path.startsWith('/notifications/')) {
-        return true
-      }
-      // Permettre l'accès aux détails d'item pour la lecture seule
-      // Format: /items/:id où :id est un UUID ou un nombre
-      if (/^\/items\/[^/]+$/.test(path)) {
         return true
       }
       // Toutes les autres routes sont interdites
@@ -105,9 +100,9 @@ export const useAuthStore = defineStore('auth', () => {
         role: normalizedRole
       }
       // Debug: afficher le rôle normalisé (à retirer en production si nécessaire)
-      console.log('Rôle utilisateur:', { original: response.role, normalized: normalizedRole, isAdmin: normalizedRole === 'ADMIN', isManager: normalizedRole === 'MANAGER' || normalizedRole === 'ADMIN' })
+      logger.debug('Rôle utilisateur:', { original: response.role, normalized: normalizedRole, isAdmin: normalizedRole === 'ADMIN', isManager: normalizedRole === 'MANAGER' || normalizedRole === 'ADMIN' })
     } catch (error) {
-      console.error('Erreur lors de la récupération du profil:', error)
+      logger.error('Erreur lors de la récupération du profil:', error)
       // Si erreur, déconnecter l'utilisateur
       logout()
     }
@@ -116,7 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshTokenAction = async (): Promise<void> => {
     if (!refreshToken.value) {
       // Si pas de refresh token, déconnecter silencieusement
-      console.warn('Aucun refresh token disponible, déconnexion...')
+      logger.warn('Aucun refresh token disponible, déconnexion...')
       logout()
       // Lancer une erreur avec un statusCode 401 pour être cohérent avec les autres erreurs d'auth
       const error: any = new Error('Aucun refresh token disponible')
@@ -130,9 +125,9 @@ export const useAuthStore = defineStore('auth', () => {
       })
       
       accessToken.value = response.accessToken
-      localStorage.setItem('accessToken', response.accessToken)
+      storage.setItem('accessToken', response.accessToken)
     } catch (error: any) {
-      console.error('Erreur lors du refresh token:', error)
+      logger.error('Erreur lors du refresh token:', error)
       // Si l'erreur indique que le refresh token est invalide ou expiré, nettoyer
       if (error?.statusCode === 401 || error?.statusCode === 403 || error?.statusCode === 400) {
         logout()
@@ -146,8 +141,8 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = null
     refreshToken.value = null
     
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
+    storage.removeItem('accessToken')
+    storage.removeItem('refreshToken')
   }
 
   const updateUser = (updatedUser: User): void => {
@@ -164,7 +159,7 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         await fetchUser()
       } catch (error) {
-        console.error('Erreur lors de l\'initialisation:', error)
+        logger.error('Erreur lors de l\'initialisation:', error)
         logout()
       }
     }

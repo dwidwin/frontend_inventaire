@@ -107,6 +107,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { useToast } from '@/composables/useToast'
 import { useCreateTeam, useUpdateTeam } from '@/composables/useTeams'
 import type { CreateTeamDto, UpdateTeamDto, Team } from '@/types'
 
@@ -124,6 +125,9 @@ const emit = defineEmits<{
 // Mutations
 const createTeamMutation = useCreateTeam()
 const updateTeamMutation = useUpdateTeam()
+
+// Toast
+const toast = useToast()
 
 // État du formulaire
 const isSubmitting = ref(false)
@@ -223,9 +227,9 @@ const handleSubmit = async () => {
     
     handleClose()
     
-  } catch (error) {
-    console.error(`Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de l'équipe:`, error)
-    alert(`Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de l'équipe. Veuillez réessayer.`)
+  } catch (error: any) {
+    const errorMessage = error?.message || `Erreur lors de la ${isEditMode.value ? 'modification' : 'création'} de l'équipe`
+    toast.error(errorMessage)
   } finally {
     isSubmitting.value = false
   }

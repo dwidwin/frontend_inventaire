@@ -193,6 +193,7 @@ import { XMarkIcon, PlusIcon, PencilIcon, CheckCircleIcon } from '@heroicons/vue
 import { useUpdateUser } from '@/composables/useUsers'
 import { formatDateTimeWithDay } from '@/utils/formatDate'
 import { usersApi } from '@/api/endpoints/users'
+import { logger } from '@/utils/logger'
 import type { User, UpdateUserDto, AuditLog } from '@/types'
 
 interface Props {
@@ -236,7 +237,7 @@ const loadModificationHistory = async () => {
         log.action === 'users.activate'
     )
   } catch (err) {
-    console.error('Erreur lors du chargement de l\'historique:', err)
+    logger.error('Erreur lors du chargement de l\'historique:', err)
     modificationHistory.value = []
   } finally {
     isLoadingHistory.value = false

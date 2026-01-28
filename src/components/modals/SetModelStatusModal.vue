@@ -23,13 +23,13 @@
           <h4 class="text-sm font-medium text-gray-900 mb-3">Statuts actifs actuels</h4>
           <div class="flex flex-wrap gap-2">
             <div
-              v-for="itemStatus in currentActiveStatuses"
-              :key="itemStatus.status?.id || itemStatus.statusKey"
+              v-for="modelStatus in currentActiveStatuses"
+              :key="modelStatus.status?.id || modelStatus.statusKey"
               class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium"
-              :style="getStatusButtonStyle(itemStatus.status)"
-              :class="getStatusButtonClasses(itemStatus.status)"
+              :style="getStatusButtonStyle(modelStatus.status)"
+              :class="getStatusButtonClasses(modelStatus.status)"
             >
-              {{ itemStatus.status?.label || itemStatus.statusKey }}
+              {{ modelStatus.status?.label || modelStatus.statusKey }}
             </div>
           </div>
         </div>
@@ -116,10 +116,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
-import { useStatuses, useModelActiveStatus, useSetItemStatus } from '@/composables/useStatuses'
+import { useStatuses, useModelActiveStatus, useSetModelStatus } from '@/composables/useStatuses'
 import { useMaterialModel } from '@/composables/useMaterialModels'
 import { statusesApi } from '@/api/endpoints/statuses'
-import type { Status, ItemStatus } from '@/types'
+import { logger } from '@/utils/logger'
+import type { Status, ModelStatus } from '@/types'
 
 interface Props {
   modelId: string
@@ -136,7 +137,7 @@ const emit = defineEmits<{
 const { data: statuses, isLoading: isLoadingStatuses } = useStatuses()
 const { data: model } = useMaterialModel(props.modelId)
 const { data: activeModelStatuses } = useModelActiveStatus(props.modelId)
-const setItemStatusMutation = useSetItemStatus()
+const setModelStatusMutation = useSetModelStatus()
 
 // Liste des statuts actifs uniquement
 const statusesList = computed(() => {
@@ -151,7 +152,7 @@ const currentActiveStatuses = computed(() => {
 
 const currentActiveStatusKeys = computed(() => {
   return currentActiveStatuses.value
-    .map(is => is.status?.key)
+    .map(ms => ms.status?.key)
     .filter(Boolean) as string[]
 })
 
@@ -243,9 +244,9 @@ const handleSubmit = async () => {
     // Créer un map des statuts actifs actuels par groupe
     const activeStatusByGroup = new Map<string, string>()
     if (activeModelStatuses.value) {
-      activeModelStatuses.value.forEach(itemStatus => {
-        if (itemStatus.status?.group && itemStatus.status?.key) {
-          activeStatusByGroup.set(itemStatus.status.group, itemStatus.status.key)
+      activeModelStatuses.value.forEach(modelStatus => {
+        if (modelStatus.status?.group && modelStatus.status?.key) {
+          activeStatusByGroup.set(modelStatus.status.group, modelStatus.status.key)
         }
       })
     }
@@ -267,7 +268,7 @@ const handleSubmit = async () => {
       
       // Si le statut a changé ou n'existe pas encore, le définir
       if (hasChanged) {
-        await setItemStatusMutation.mutateAsync({
+        await setModelStatusMutation.mutateAsync({
           modelId: props.modelId,
           statusKey: statusKey,
           notes: form.value.notes || undefined,
@@ -282,7 +283,7 @@ const handleSubmit = async () => {
           await statusesApi.closeActiveByGroup(props.modelId, group)
         } catch (err) {
           // Ne pas bloquer si la fermeture échoue
-          console.error('Erreur lors de la fermeture du statut:', err)
+          logger.error('Erreur lors de la fermeture du statut:', err)
         }
       }
     }

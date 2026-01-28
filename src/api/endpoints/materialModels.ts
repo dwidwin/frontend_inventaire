@@ -1,10 +1,10 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/api/client'
-import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, MoveModelDto, UpdateModelCategoriesDto, ModelHistoryEntry } from '@/types'
+import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, MoveModelDto, UpdateModelCategoriesDto, ModelHistoryEntry, PaginatedResponse } from '@/types'
 
 export const materialModelsApi = {
   // Liste des modèles
-  list: (): Promise<MaterialModel[]> => {
-    return apiGet<MaterialModel[]>('/api/material-models')
+  list: (): Promise<PaginatedResponse<MaterialModel>> => {
+    return apiGet<PaginatedResponse<MaterialModel>>('/api/material-models')
   },
 
   // Recherche de modèles

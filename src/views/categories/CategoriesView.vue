@@ -50,24 +50,36 @@
       @close="showEditCategoryModal = false"
       @updated="handleCategoryUpdated"
     />
+    
+    <DeleteConfirmModal
+      v-if="showDeleteCategoryModal && selectedCategory"
+      :model="selectedCategory as any"
+      @close="showDeleteCategoryModal = false; selectedCategory = null"
+      @confirmed="confirmDeleteCategory"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { PlusIcon } from '@heroicons/vue/24/outline'
-import { useCategories } from '@/composables/useCategories'
+import { useCategories, useDeleteCategory } from '@/composables/useCategories'
+import { useToast } from '@/composables/useToast'
 import CategoryTree from '@/components/CategoryTree.vue'
 import CreateCategoryModal from '@/components/modals/CreateCategoryModal.vue'
 import EditCategoryModal from '@/components/modals/EditCategoryModal.vue'
+import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
 import type { Category } from '@/types'
 
 // Queries
 const { data: categories, isLoading: isLoadingCategories } = useCategories()
+const deleteCategoryMutation = useDeleteCategory()
+const toast = useToast()
 
 // État local
 const showCreateCategoryModal = ref(false)
 const showEditCategoryModal = ref(false)
+const showDeleteCategoryModal = ref(false)
 const selectedCategory = ref<Category | null>(null)
 
 // Actions
@@ -76,9 +88,22 @@ const handleEditCategory = (category: Category) => {
   showEditCategoryModal.value = true
 }
 
-const handleDeleteCategory = (category: Category) => {
-  // TODO: Implémenter la suppression
-  console.log('Delete category:', category)
+const handleDeleteCategory = async (category: Category) => {
+  selectedCategory.value = category
+  showDeleteCategoryModal.value = true
+}
+
+const confirmDeleteCategory = async () => {
+  if (!selectedCategory.value) return
+  
+  try {
+    await deleteCategoryMutation.mutateAsync(selectedCategory.value.id)
+    toast.success('Catégorie supprimée avec succès')
+    showDeleteCategoryModal.value = false
+    selectedCategory.value = null
+  } catch (error: any) {
+    toast.error(error?.message || 'Erreur lors de la suppression de la catégorie')
+  }
 }
 
 const handleCategoryCreated = () => {

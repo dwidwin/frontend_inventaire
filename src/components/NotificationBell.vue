@@ -79,6 +79,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { BellIcon } from '@heroicons/vue/24/outline'
 import { useNotifications, useUnreadNotificationsCount, useMarkNotificationAsRead } from '@/composables/useNotifications'
 import { formatDateTime } from '@/utils/formatDate'
+import { logger } from '@/utils/logger'
 
 // État local
 const dropdownOpen = ref(false)
@@ -93,7 +94,7 @@ const markAsRead = async (id: string) => {
   try {
     await markAsReadMutation.mutateAsync(id)
   } catch (error) {
-    console.error('Erreur lors du marquage de la notification:', error)
+    logger.error('Erreur lors du marquage de la notification:', error)
   }
 }
 
