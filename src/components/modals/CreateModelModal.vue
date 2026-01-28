@@ -132,31 +132,13 @@
             </select>
           </div>
 
-          <!-- État -->
+          <!-- Statuts -->
           <div class="mb-4">
-            <label for="etat" class="form-label">
-              État initial
-            </label>
-            <div v-if="isLoadingStatuses" class="text-sm text-gray-500">
-              Chargement des statuts...
-            </div>
-            <select
-              v-else
-              id="etat"
-              v-model="form.etat"
-              class="form-select"
-            >
-              <option
-                v-for="status in lifecycleStatuses"
-                :key="status.id"
-                :value="status.key"
-              >
-                {{ status.label }}
-              </option>
-            </select>
-            <p class="mt-1 text-sm text-gray-500">
-              L'état peut être modifié après la création via les statuts
-            </p>
+            <StatusSelector
+              v-model="selectedStatusesByGroup"
+              :statuses="statuses || []"
+              :is-loading="isLoadingStatuses"
+            />
           </div>
 
           <!-- Photo -->
@@ -228,16 +210,17 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { useCreateMaterialModel } from '@/composables/useMaterialModels'
 import { useCategories } from '@/composables/useCategories'
 import { useLocations } from '@/composables/useLocations'
-import { useStatuses } from '@/composables/useStatuses'
+import { useStatuses, useSetModelStatus } from '@/composables/useStatuses'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import { getLocationsWithIndent } from '@/utils/locationUtils'
 import { uploadsApi } from '@/api/endpoints/uploads'
-import type { CreateMaterialModelDto, Status } from '@/types'
+import StatusSelector from '@/components/StatusSelector.vue'
+import type { CreateMaterialModelDto } from '@/types'
 import { StatusGroup } from '@/types'
 
 const emit = defineEmits<{
@@ -252,22 +235,11 @@ const { data: locations, isLoading: isLoadingLocations } = useLocations()
 const locationsWithIndent = computed(() => getLocationsWithIndent(locations.value))
 
 const { data: statuses, isLoading: isLoadingStatuses } = useStatuses()
-// Filtrer uniquement les statuts lifecycle actifs
-const lifecycleStatuses = computed(() => {
-  return (statuses.value || [])
-    .filter((status: Status) => status.group === StatusGroup.LIFECYCLE && status.isActive !== false)
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label))
-})
-
 const createModelMutation = useCreateMaterialModel()
+const setModelStatusMutation = useSetModelStatus()
 
-// Valeur par défaut : utiliser le premier statut lifecycle disponible ou 'en_stock'
-const defaultEtat = computed(() => {
-  if (lifecycleStatuses.value && lifecycleStatuses.value.length > 0) {
-    return lifecycleStatuses.value[0].key
-  }
-  return 'en_stock'
-})
+// Sélection des statuts par groupe
+const selectedStatusesByGroup = ref<Map<StatusGroup, string>>(new Map())
 
 const form = reactive<CreateMaterialModelDto>({
   name: '',
@@ -276,16 +248,9 @@ const form = reactive<CreateMaterialModelDto>({
   description: '',
   codeBarre: '',
   locationId: undefined,
-  etat: 'en_stock', // Sera mis à jour par le watch
+  etat: 'en_stock',
   photoUrl: undefined,
 })
-
-// Mettre à jour la valeur par défaut quand les statuts sont chargés
-watch(defaultEtat, (newDefault) => {
-  if (newDefault && !form.etat) {
-    form.etat = newDefault
-  }
-}, { immediate: true })
 
 const photoInputRef = ref<HTMLInputElement | null>(null)
 const selectedPhoto = ref<File | null>(null)
@@ -305,6 +270,7 @@ const handleClose = () => {
   form.locationId = undefined
   form.etat = 'en_stock'
   form.photoUrl = undefined
+  selectedStatusesByGroup.value = new Map()
   selectedPhoto.value = null
   photoPreview.value = null
   if (photoInputRef.value) {
@@ -354,9 +320,6 @@ const removePhoto = () => {
 }
 
 const handleSubmit = async () => {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/f9f79d86-6216-40ab-95f0-ad8db2c270f7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CreateModelModal.vue:handleSubmit',message:'handleSubmit appelé',data:{form:JSON.stringify(form)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   errors.value = {}
   error.value = ''
   
@@ -374,9 +337,9 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f9f79d86-6216-40ab-95f0-ad8db2c270f7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CreateModelModal.vue:handleSubmit',message:'Avant mutation create',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
+    // Déterminer l'état à partir du statut lifecycle sélectionné (ou 'en_stock' par défaut)
+    const lifecycleStatusKey = selectedStatusesByGroup.value.get(StatusGroup.LIFECYCLE)
+    const etat = lifecycleStatusKey || 'en_stock'
     
     // Créer le modèle
     const createdModel = await createModelMutation.mutateAsync({
@@ -386,9 +349,22 @@ const handleSubmit = async () => {
       description: form.description?.trim() || undefined,
       codeBarre: form.codeBarre?.trim() || undefined,
       locationId: form.locationId || undefined,
-      etat: form.etat || 'en_stock',
+      etat: etat,
       photoUrl: form.photoUrl || undefined,
     })
+    
+    // Créer les statuts sélectionnés pour chaque groupe
+    for (const [group, statusKey] of selectedStatusesByGroup.value.entries()) {
+      try {
+        await setModelStatusMutation.mutateAsync({
+          modelId: createdModel.id,
+          statusKey: statusKey,
+        })
+      } catch (statusErr: any) {
+        // Ne pas bloquer la création si un statut échoue
+        console.error(`Erreur lors de la création du statut ${statusKey} pour le groupe ${group}:`, statusErr)
+      }
+    }
     
     // Upload de la photo si une photo a été sélectionnée
     if (selectedPhoto.value && createdModel.id) {
@@ -401,15 +377,9 @@ const handleSubmit = async () => {
       }
     }
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f9f79d86-6216-40ab-95f0-ad8db2c270f7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CreateModelModal.vue:handleSubmit',message:'Après mutation create réussie',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     emit('created')
     handleClose()
   } catch (err: any) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f9f79d86-6216-40ab-95f0-ad8db2c270f7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CreateModelModal.vue:handleSubmit',message:'Erreur lors de la création',data:{error:err?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     error.value = err?.response?.data?.message || err?.message || 'Une erreur est survenue lors de la création'
   } finally {
     isSubmitting.value = false

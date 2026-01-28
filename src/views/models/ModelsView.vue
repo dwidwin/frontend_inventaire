@@ -56,7 +56,16 @@
       </template>
 
       <template #cell-etat="{ item }">
-        <span class="text-sm text-gray-900">{{ item.etat || 'en_stock' }}</span>
+        <div class="flex flex-wrap gap-1">
+          <template v-if="modelStatusesMap[item.id]?.length">
+            <StatusBadge 
+              v-for="modelStatus in modelStatusesMap[item.id]" 
+              :key="modelStatus.status?.id || modelStatus.statusKey"
+              :status="modelStatus.status" 
+            />
+          </template>
+          <StatusBadge v-else :status="item.etat || 'en_stock'" />
+        </div>
       </template>
       
       <template #cell-mainImageUrl="{ item }">
@@ -98,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, unref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import { useQuery, useQueries } from '@tanstack/vue-query'
@@ -106,6 +115,7 @@ import { materialModelsApi } from '@/api/endpoints/materialModels'
 import { useDeleteMaterialModel } from '@/composables/useMaterialModels'
 import { useToast } from '@/composables/useToast'
 import DataTable from '@/components/DataTable.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 import CreateModelModal from '@/components/modals/CreateModelModal.vue'
 import EditModelModal from '@/components/modals/EditModelModal.vue'
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
@@ -121,6 +131,54 @@ const { data: modelsResponse, isLoading: isLoadingModels } = useQuery({
 // Extraire le tableau de modèles de la réponse paginée
 const models = computed(() => modelsResponse.value?.data || [])
 
+// Récupérer les statuts actifs pour tous les modèles
+const statusQueriesConfig = computed(() => {
+  const modelsList = models.value
+  
+  if (!Array.isArray(modelsList) || modelsList.length === 0) {
+    return []
+  }
+  
+  try {
+    return modelsList.map((model) => ({
+      queryKey: ['model-statuses', 'active', model.id],
+      queryFn: async () => {
+        const { statusesApi } = await import('@/api/endpoints/statuses')
+        return statusesApi.getModelActiveStatus(model.id)
+      },
+      enabled: !!model.id,
+    }))
+  } catch (error) {
+    console.error('Erreur lors du mapping des modèles:', error, 'modelsList:', modelsList)
+    return []
+  }
+})
+
+const statusQueries = useQueries({
+  queries: statusQueriesConfig,
+})
+
+// Mapper les statuts actifs par modèle ID
+const modelStatusesMap = computed(() => {
+  const map: Record<string, any[]> = {}
+  const modelsList = models.value
+  if (!modelsList || modelsList.length === 0) return map
+  
+  modelsList.forEach((model, index) => {
+    const queryResult = statusQueries.value[index]
+    if (!queryResult || !queryResult.isSuccess) return
+    
+    // Dans Vue Query v5, data est un Ref. Utilisons unref pour être sûr de déballer le Ref
+    const statuses = unref(queryResult.data) || []
+    
+    if (Array.isArray(statuses) && statuses.length > 0) {
+      map[model.id] = statuses
+    }
+  })
+  
+  return map
+})
+
 const deleteModelMutation = useDeleteMaterialModel()
 const toast = useToast()
 
@@ -135,7 +193,7 @@ const modelColumns = [
   { key: 'name', label: 'Nom', sortable: true },
   { key: 'categories', label: 'Catégories', sortable: false },
   { key: 'location', label: 'Emplacement', sortable: true },
-  { key: 'etat', label: 'État', sortable: true },
+  { key: 'etat', label: 'Statuts', sortable: true },
   { key: 'codeBarre', label: 'Code-barres', sortable: true },
   { key: 'mainImageUrl', label: 'Image', sortable: false },
   { key: 'createdAt', label: 'Créé le', sortable: true },

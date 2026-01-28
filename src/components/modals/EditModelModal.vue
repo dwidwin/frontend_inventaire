@@ -130,31 +130,13 @@
             </select>
           </div>
 
-          <!-- État -->
+          <!-- Statuts -->
           <div class="mb-4">
-            <label for="etat" class="form-label">
-              État
-            </label>
-            <div v-if="isLoadingStatuses" class="text-sm text-gray-500">
-              Chargement des statuts...
-            </div>
-            <select
-              v-else
-              id="etat"
-              v-model="form.etat"
-              class="form-select"
-            >
-              <option
-                v-for="status in lifecycleStatuses"
-                :key="status.id"
-                :value="status.key"
-              >
-                {{ status.label }}
-              </option>
-            </select>
-            <p class="mt-1 text-sm text-gray-500">
-              L'état peut aussi être modifié via les statuts
-            </p>
+            <StatusSelector
+              v-model="selectedStatusesByGroup"
+              :statuses="statuses || []"
+              :is-loading="isLoadingStatuses || isLoadingActiveStatuses"
+            />
           </div>
 
           <!-- Photo -->
@@ -239,17 +221,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { useUpdateMaterialModel, useMaterialModel } from '@/composables/useMaterialModels'
 import { useCategories } from '@/composables/useCategories'
 import { useLocations } from '@/composables/useLocations'
-import { useStatuses } from '@/composables/useStatuses'
+import { useStatuses, useModelActiveStatus, useSetModelStatus } from '@/composables/useStatuses'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import { getLocationsWithIndent } from '@/utils/locationUtils'
 import { uploadsApi } from '@/api/endpoints/uploads'
+import { statusesApi } from '@/api/endpoints/statuses'
+import { logger } from '@/utils/logger'
 import EntityHistory from '@/components/EntityHistory.vue'
-import type { MaterialModel, UpdateMaterialModelDto, Status } from '@/types'
+import StatusSelector from '@/components/StatusSelector.vue'
+import type { MaterialModel, UpdateMaterialModelDto } from '@/types'
 import { StatusGroup } from '@/types'
 
 interface Props {
@@ -270,29 +255,25 @@ const { data: locations, isLoading: isLoadingLocations } = useLocations()
 const locationsWithIndent = computed(() => getLocationsWithIndent(locations.value))
 
 const { data: statuses, isLoading: isLoadingStatuses } = useStatuses()
-// Filtrer uniquement les statuts lifecycle actifs
-const lifecycleStatuses = computed(() => {
-  return (statuses.value || [])
-    .filter((status: Status) => status.group === StatusGroup.LIFECYCLE && status.isActive !== false)
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label))
-})
-
+const { data: activeModelStatuses, isLoading: isLoadingActiveStatuses } = useModelActiveStatus(props.model.id)
 const updateModelMutation = useUpdateMaterialModel()
+const setModelStatusMutation = useSetModelStatus()
 
-// Valeur par défaut : utiliser le premier statut lifecycle disponible ou l'état actuel du modèle
-const defaultEtat = computed(() => {
-  if (lifecycleStatuses.value && lifecycleStatuses.value.length > 0) {
-    // Si l'état actuel du modèle correspond à une clé de statut lifecycle, l'utiliser
-    const currentEtat = props.model.etat
-    const matchingStatus = lifecycleStatuses.value.find(s => s.key === currentEtat)
-    if (matchingStatus) {
-      return matchingStatus.key
-    }
-    // Sinon, utiliser le premier statut disponible
-    return lifecycleStatuses.value[0].key
+// Sélection des statuts par groupe
+const selectedStatusesByGroup = ref<Map<StatusGroup, string>>(new Map())
+
+// Initialiser la sélection avec les statuts actifs du modèle
+watch(activeModelStatuses, (newStatuses) => {
+  if (newStatuses && newStatuses.length > 0) {
+    const newMap = new Map<StatusGroup, string>()
+    newStatuses.forEach(modelStatus => {
+      if (modelStatus.status?.group && modelStatus.status?.key) {
+        newMap.set(modelStatus.status.group, modelStatus.status.key)
+      }
+    })
+    selectedStatusesByGroup.value = newMap
   }
-  return props.model.etat || 'en_stock'
-})
+}, { immediate: true })
 
 const form = ref<UpdateMaterialModelDto>({
   name: props.model.name,
@@ -317,16 +298,6 @@ const isSubmitting = ref(false)
 // Mettre à jour le formulaire si le modèle change
 watch(() => props.model, (newModel) => {
   if (newModel) {
-    // Déterminer l'état à utiliser : si l'état actuel correspond à un statut lifecycle, l'utiliser
-    let etatToUse = newModel.etat || 'en_stock'
-    if (lifecycleStatuses.value && lifecycleStatuses.value.length > 0) {
-      const matchingStatus = lifecycleStatuses.value.find(s => s.key === etatToUse)
-      if (!matchingStatus && lifecycleStatuses.value.length > 0) {
-        // Si l'état ne correspond à aucun statut lifecycle, utiliser le premier disponible
-        etatToUse = lifecycleStatuses.value[0].key
-      }
-    }
-    
     form.value = {
       name: newModel.name,
       categoryIds: newModel.categories?.map(c => c.id) || [],
@@ -334,7 +305,7 @@ watch(() => props.model, (newModel) => {
       description: newModel.description || '',
       locationId: newModel.locationId || undefined,
       codeBarre: newModel.codeBarre || '',
-      etat: etatToUse,
+      etat: newModel.etat || 'en_stock',
       photoUrl: newModel.photoUrl || undefined,
     }
     // Réinitialiser la photo sélectionnée
@@ -342,18 +313,6 @@ watch(() => props.model, (newModel) => {
     photoPreview.value = null
     if (photoInputRef.value) {
       photoInputRef.value.value = ''
-    }
-  }
-}, { immediate: true })
-
-// Mettre à jour l'état du formulaire quand les statuts lifecycle sont chargés
-watch(lifecycleStatuses, (newStatuses) => {
-  if (newStatuses && newStatuses.length > 0 && form.value.etat) {
-    // Vérifier si l'état actuel correspond à un statut lifecycle valide
-    const matchingStatus = newStatuses.find(s => s.key === form.value.etat)
-    if (!matchingStatus) {
-      // Si l'état ne correspond à aucun statut lifecycle, utiliser le premier disponible
-      form.value.etat = newStatuses[0].key
     }
   }
 }, { immediate: true })
@@ -427,6 +386,10 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
+    // Déterminer l'état à partir du statut lifecycle sélectionné (ou garder l'actuel)
+    const lifecycleStatusKey = selectedStatusesByGroup.value.get(StatusGroup.LIFECYCLE)
+    const etat = lifecycleStatusKey || form.value.etat || 'en_stock'
+    
     // Préparer les données de mise à jour
     const updateData: UpdateMaterialModelDto = {
       name: form.value.name.trim(),
@@ -435,7 +398,7 @@ const handleSubmit = async () => {
       description: form.value.description?.trim() || undefined,
       locationId: form.value.locationId || undefined,
       codeBarre: form.value.codeBarre?.trim() || undefined,
-      etat: form.value.etat,
+      etat: etat,
     }
     
     // Gérer photoUrl : seulement si on veut supprimer (null) ou si on ne change rien (undefined)
@@ -449,6 +412,46 @@ const handleSubmit = async () => {
       id: props.model.id,
       data: updateData,
     })
+    
+    // Gérer les statuts : comparer avec les statuts actifs actuels
+    const activeStatusByGroup = new Map<string, string>()
+    if (activeModelStatuses.value) {
+      activeModelStatuses.value.forEach(modelStatus => {
+        if (modelStatus.status?.group && modelStatus.status?.key) {
+          activeStatusByGroup.set(modelStatus.status.group, modelStatus.status.key)
+        }
+      })
+    }
+    
+    // Créer/mettre à jour les statuts qui ont changé
+    for (const [group, statusKey] of selectedStatusesByGroup.value.entries()) {
+      const currentStatusKey = activeStatusByGroup.get(group)
+      const hasChanged = currentStatusKey !== statusKey
+      
+      if (hasChanged) {
+        try {
+          await setModelStatusMutation.mutateAsync({
+            modelId: props.model.id,
+            statusKey: statusKey,
+          })
+        } catch (statusErr: any) {
+          // Ne pas bloquer la modification si un statut échoue
+          console.error(`Erreur lors de la mise à jour du statut ${statusKey} pour le groupe ${group}:`, statusErr)
+        }
+      }
+    }
+    
+    // Fermer les statuts des groupes qui n'ont plus de statut sélectionné
+    for (const [group] of activeStatusByGroup.entries()) {
+      if (!selectedStatusesByGroup.value.has(group as StatusGroup)) {
+        try {
+          await statusesApi.closeActiveByGroup(props.model.id, group)
+        } catch (err) {
+          // Ne pas bloquer si la fermeture échoue
+          logger.error('Erreur lors de la fermeture du statut:', err)
+        }
+      }
+    }
     
     // Upload de la photo si une nouvelle photo a été sélectionnée
     if (selectedPhoto.value) {
