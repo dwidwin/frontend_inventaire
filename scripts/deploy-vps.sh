@@ -6,7 +6,9 @@ cd "$REPO_DIR"
 
 echo "[deploy] git fetch & pull..."
 git fetch --all --prune
-git pull --rebase --autostash origin main || true
+# Supprimer les fichiers non suivis qui bloquent le merge (artefacts locaux)
+rm -f package-lock.json tsconfig.tsbuildinfo tsconfig.node.tsbuildinfo 2>/dev/null || true
+git pull --rebase --autostash origin main
 
 echo "[deploy] installing dependencies..."
 npm ci

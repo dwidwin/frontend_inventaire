@@ -43,6 +43,16 @@
           class="card hover:shadow-md transition-shadow cursor-pointer block"
         >
           <div class="card-body flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <!-- Miniature du modèle -->
+            <div class="flex-shrink-0 w-24 h-24 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
+              <img
+                v-if="item.model?.mainImageUrl || item.model?.photoUrl"
+                :src="item.model?.photoUrl || item.model?.mainImageUrl"
+                :alt="item.model?.name ?? 'Matériel'"
+                class="w-full h-full object-contain"
+              />
+              <CubeIcon v-else class="w-12 h-12 text-gray-400" />
+            </div>
             <div class="min-w-0 flex-1">
               <h3 class="text-lg font-medium text-gray-900 truncate">
                 {{ item.model?.name ?? 'Modèle inconnu' }}
@@ -70,6 +80,16 @@
           class="card hover:shadow-md transition-shadow"
         >
           <div class="card-body flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <!-- Miniature du modèle -->
+            <div class="flex-shrink-0 w-24 h-24 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
+              <img
+                v-if="item.model?.mainImageUrl || item.model?.photoUrl"
+                :src="item.model?.photoUrl || item.model?.mainImageUrl"
+                :alt="item.model?.name ?? 'Matériel'"
+                class="w-full h-full object-contain"
+              />
+              <CubeIcon v-else class="w-12 h-12 text-gray-400" />
+            </div>
             <div class="min-w-0 flex-1">
               <h3 class="text-lg font-medium text-gray-900 truncate">
                 {{ item.model?.name ?? 'Modèle inconnu' }}
@@ -116,6 +136,7 @@ import { useAuthStore } from '@/stores/auth'
 import { transactionsApi } from '@/api/endpoints/transactions'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { formatDate } from '@/utils/formatDate'
+import { CubeIcon } from '@heroicons/vue/24/outline'
 import type { Transaction, TransactionItem, MaterialModel } from '@/types'
 
 const authStore = useAuthStore()

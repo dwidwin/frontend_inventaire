@@ -315,18 +315,23 @@ export interface Notification extends BaseEntity {
   targetRole?: 'admin' | 'manager' | 'user'
   targetTeamId?: string
   targetTeam?: Team
+  createdByUserId?: string
+  createdByUser?: User
   title: string
   message?: string
   data?: Record<string, any>
   readAt?: string
+  scheduledAt?: string
 }
 
 export interface BroadcastDto {
+  userId?: string
   targetRole?: 'admin' | 'manager' | 'user'
   targetTeamId?: string
   title: string
   message?: string
   data?: Record<string, any>
+  scheduledAt?: string
 }
 
 // Audit

@@ -38,6 +38,12 @@
         @mark-read="handleMarkAsRead"
       />
     </div>
+
+    <BroadcastNotificationModal
+      :open="showBroadcastModal"
+      @close="showBroadcastModal = false"
+      @success="showBroadcastModal = false"
+    />
   </div>
 </template>
 
@@ -48,6 +54,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useNotifications, useMarkNotificationAsRead } from '@/composables/useNotifications'
 import { logger } from '@/utils/logger'
 import NotificationItem from '@/components/NotificationItem.vue'
+import BroadcastNotificationModal from '@/components/modals/BroadcastNotificationModal.vue'
 
 const authStore = useAuthStore()
 

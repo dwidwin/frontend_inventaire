@@ -18,6 +18,10 @@
         {{ notification.message }}
       </p>
       <p class="mt-1 text-xs text-gray-500">
+        <span v-if="notification.createdByUser" class="text-gray-600">
+          Par {{ notification.createdByUser.username || notification.createdByUser.email || '—' }}
+          · 
+        </span>
         {{ formatDateTime(notification.createdAt) }}
       </p>
     </div>
