@@ -8,27 +8,56 @@
       </p>
     </div>
 
-    <!-- Statistiques -->
+    <!-- Statistiques KPI -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
       <StatCard
-        title="Total Modèles"
-        :value="stats.totalModels"
+        title="Total modèles"
+        :value="stats?.totalModels ?? 0"
         icon="CubeIcon"
         color="primary"
         :loading="isLoadingStats"
       />
       <StatCard
-        title="Affectations Actives"
-        :value="stats.activeAssignments"
-        icon="UserGroupIcon"
+        title="Matériel loué"
+        :value="stats?.rentedCount ?? 0"
+        icon="TruckIcon"
+        color="warning"
+        :loading="isLoadingStats"
+      />
+      <StatCard
+        title="Disponible à la location"
+        :value="stats?.availableForRentalCount ?? 0"
+        icon="CheckCircleIcon"
         color="success"
         :loading="isLoadingStats"
       />
       <StatCard
-        title="Transactions ce mois"
-        :value="stats.monthlyTransactions"
-        icon="CurrencyDollarIcon"
+        title="Matériel affecté"
+        :value="stats?.assignedCount ?? 0"
+        icon="UserGroupIcon"
+        color="primary"
+        :loading="isLoadingStats"
+      />
+      <StatCard
+        title="Matériel non affecté"
+        :value="stats?.unassignedCount ?? 0"
+        icon="UserMinusIcon"
+        color="primary"
+        :loading="isLoadingStats"
+      />
+      <StatCard
+        title="Locations en cours"
+        :value="stats?.activeRentalsCount ?? 0"
+        icon="CalendarDaysIcon"
         color="warning"
+        :loading="isLoadingStats"
+      />
+      <StatCard
+        v-if="stats?.overdueRentalsCount != null"
+        title="Retards"
+        :value="stats.overdueRentalsCount"
+        icon="ExclamationTriangleIcon"
+        color="danger"
         :loading="isLoadingStats"
       />
       <StatCard
@@ -40,38 +69,76 @@
       />
     </div>
 
-    <!-- Actions rapides -->
-    <div v-if="authStore.canWrite" class="mb-8">
-      <h2 class="text-lg font-medium text-gray-900 mb-4">Actions rapides</h2>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <QuickActionCard
-          title="Ajouter un modèle"
-          description="Enregistrer un nouveau matériel"
-          icon="PlusIcon"
-          href="/models"
-          color="primary"
-        />
-        <QuickActionCard
-          title="Nouvelle affectation"
-          description="Affecter du matériel"
-          icon="UserGroupIcon"
-          href="/assignments"
-          color="success"
-        />
-        <QuickActionCard
-          title="Créer une location"
-          description="Enregistrer une location"
-          icon="CurrencyDollarIcon"
-          href="/transactions"
-          color="warning"
-        />
-        <QuickActionCard
-          title="Voir le catalogue"
-          description="Parcourir le matériel"
-          icon="QrCodeIcon"
-          href="/catalogue"
-          color="primary"
-        />
+    <!-- Tableaux par catégorie -->
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2 mb-8">
+      <!-- Matériel loué par catégorie -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-lg font-medium text-gray-900">Matériel loué par catégorie</h3>
+        </div>
+        <div class="card-body">
+          <div v-if="isLoadingStats" class="space-y-2">
+            <div v-for="i in 4" :key="i" class="skeleton h-10"></div>
+          </div>
+          <div v-else-if="!stats?.rentedByCategory?.length" class="text-center py-8 text-gray-500">
+            Aucun matériel loué
+          </div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Catégorie
+                  </th>
+                  <th scope="col" class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nombre
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="row in stats.rentedByCategory" :key="row.categoryId">
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{{ row.categoryName }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 text-right">{{ row.count }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Matériel disponible par catégorie -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-lg font-medium text-gray-900">Matériel disponible à la location par catégorie</h3>
+        </div>
+        <div class="card-body">
+          <div v-if="isLoadingStats" class="space-y-2">
+            <div v-for="i in 4" :key="i" class="skeleton h-10"></div>
+          </div>
+          <div v-else-if="!stats?.availableByCategory?.length" class="text-center py-8 text-gray-500">
+            Aucun matériel disponible
+          </div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Catégorie
+                  </th>
+                  <th scope="col" class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nombre
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="row in stats.availableByCategory" :key="row.categoryId">
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{{ row.categoryName }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 text-right">{{ row.count }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -143,58 +210,31 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useMaterialModels } from '@/composables/useMaterialModels'
 import { useNotifications, useUnreadNotificationsCount, useMarkNotificationAsRead } from '@/composables/useNotifications'
 import { useQuery } from '@tanstack/vue-query'
-import { assignmentsApi } from '@/api/endpoints/assignments'
-import { transactionsApi } from '@/api/endpoints/transactions'
+import { dashboardApi } from '@/api/endpoints/dashboard'
 import { auditApi } from '@/api/endpoints/audit'
 import { logger } from '@/utils/logger'
 import StatCard from '@/components/StatCard.vue'
-import QuickActionCard from '@/components/QuickActionCard.vue'
 import NotificationItem from '@/components/NotificationItem.vue'
 import ActivityItem from '@/components/ActivityItem.vue'
 
-const authStore = useAuthStore()
+// Stats dashboard (nouvel endpoint)
+const { data: stats, isLoading: isLoadingStats } = useQuery({
+  queryKey: ['dashboard', 'stats'],
+  queryFn: () => dashboardApi.getStats(),
+})
 
-// Queries
-const { data: modelsResponse, isLoading: isLoadingModels } = useMaterialModels()
+// Notifications
 const { data: notifications, isLoading: isLoadingNotifications } = useNotifications()
 const unreadNotificationsCount = useUnreadNotificationsCount()
 const markAsReadMutation = useMarkNotificationAsRead()
-
-// Affectations actives
-const { data: activeAssignments, isLoading: isLoadingAssignments } = useQuery({
-  queryKey: ['assignments', 'active'],
-  queryFn: () => assignmentsApi.getActive(),
-})
-
-// Transactions du mois
-const { data: monthlyTransactions, isLoading: isLoadingTransactions } = useQuery({
-  queryKey: ['transactions', 'monthly'],
-  queryFn: () => transactionsApi.list(),
-})
 
 // Activité récente (audit)
 const { data: recentActivity, isLoading: isLoadingAudit } = useQuery({
   queryKey: ['audit', 'recent'],
   queryFn: () => auditApi.list({ limit: 5 }),
 })
-
-// Extraire le tableau de modèles de la réponse paginée
-const models = computed(() => modelsResponse.value?.data || [])
-
-// Statistiques calculées
-const stats = computed(() => ({
-  totalModels: models.value?.length || 0,
-  activeAssignments: activeAssignments.value?.length || 0,
-  monthlyTransactions: monthlyTransactions.value?.length || 0,
-}))
-
-const isLoadingStats = computed(() => 
-  isLoadingModels.value || isLoadingAssignments.value || isLoadingTransactions.value
-)
 
 // Notifications récentes (5 dernières)
 const recentNotifications = computed(() => {

@@ -78,6 +78,7 @@ export interface MaterialModel extends BaseEntity {
   location?: Location
   codeBarre?: string
   etat?: string
+  taillePointure?: string
   photoUrl?: string
   referenceFournisseur?: string
   description?: string
@@ -94,6 +95,7 @@ export interface CreateMaterialModelDto {
   locationId?: string
   codeBarre?: string
   etat?: string
+  taillePointure?: string
   photoUrl?: string
 }
 
@@ -105,6 +107,7 @@ export interface UpdateMaterialModelDto {
   locationId?: string
   codeBarre?: string
   etat?: string
+  taillePointure?: string
   photoUrl?: string
 }
 
@@ -184,7 +187,6 @@ export interface CreateAssignmentDto {
 }
 
 export interface CloseAssignmentDto {
-  endAt: string
   notes?: string
 }
 
@@ -245,9 +247,10 @@ export interface SetModelStatusDto {
   notes?: string
 }
 
-// Transactions
+// Transactions (backend uses 'rental', frontend may receive 'rent' or 'rental')
 export interface Transaction extends BaseEntity {
-  type: 'rent' | 'sale'
+  type: 'rent' | 'rental' | 'sale'
+  isAssignment?: boolean
   counterpartyUserId?: string
   counterpartyUser?: User
   counterpartyTeamId?: string
@@ -280,6 +283,7 @@ export interface CreateRentalDto {
   externalName?: string
   dueAt?: string
   notes?: string
+  isAssignment?: boolean
   models: {
     modelId: string
     unitPrice?: number
@@ -353,6 +357,24 @@ export interface ModelHistoryEntry {
   data?: Record<string, any>
 }
 
+// Dashboard
+export interface DashboardCategoryCount {
+  categoryId: string
+  categoryName: string
+  count: number
+}
+
+export interface DashboardStats {
+  totalModels: number
+  assignedCount: number
+  unassignedCount: number
+  rentedCount: number
+  availableForRentalCount: number
+  activeRentalsCount: number
+  rentedByCategory: DashboardCategoryCount[]
+  availableByCategory: DashboardCategoryCount[]
+  overdueRentalsCount?: number
+}
 
 // Réponses API
 export interface ApiResponse<T = any> {

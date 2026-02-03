@@ -4,6 +4,7 @@ import { canAccessRoute } from '@/utils/permissions'
 
 // Import des vues
 import LoginView from '@/views/auth/LoginView.vue'
+import MonInventaireView from '@/views/inventory/MonInventaireView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import CatalogueView from '@/views/catalogue/CatalogueView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
@@ -36,14 +37,15 @@ const router = createRouter({
       component: () => import('@/layouts/MainLayout.vue'),
       meta: { requiresAuth: true },
       children: [
-        { path: '', name: 'Dashboard', component: DashboardView },
+        { path: '', name: 'MonInventaire', component: MonInventaireView },
+        { path: 'dashboard', name: 'Dashboard', component: DashboardView, meta: { requiresManager: true } },
         { path: 'catalogue', name: 'Catalogue', component: CatalogueView },
         { path: 'categories', name: 'Categories', component: () => import('@/views/categories/CategoriesView.vue'), meta: { requiresAdmin: true } },
         { path: 'models', name: 'Models', component: () => import('@/views/models/ModelsView.vue'), meta: { requiresAdmin: true } },
         { path: 'models/:id', name: 'ModelDetail', component: () => import('@/views/models/ModelDetailView.vue'), meta: { requiresAdmin: true } },
         { path: 'statuses', name: 'Statuses', component: () => import('@/views/statuses/StatusesView.vue'), meta: { requiresAdmin: true } },
         { path: 'locations', name: 'Locations', component: () => import('@/views/locations/LocationsView.vue'), meta: { requiresManager: true } },
-        { path: 'assignments', name: 'Assignments', component: () => import('@/views/assignments/AssignmentsView.vue'), meta: { requiresManager: true } },
+        { path: 'assignments', redirect: { name: 'Transactions' } },
         { path: 'transactions', name: 'Transactions', component: () => import('@/views/transactions/TransactionsView.vue') },
         { path: 'teams', name: 'Teams', component: () => import('@/views/teams/TeamsView.vue'), meta: { requiresManager: true } },
         { path: 'users', name: 'Users', component: () => import('@/views/users/UsersView.vue'), meta: { requiresManager: true } },
@@ -79,12 +81,12 @@ router.beforeEach(async (to, from, next) => {
   // Si authentifié, vérifier les permissions d'accès à la page
   if (authStore.isAuthenticated && authStore.user) {
     if (!canAccessRoute(to, authStore.user)) {
-      // Si user essaie d'accéder à une page non autorisée, rediriger vers catalogue
+      // Si user essaie d'accéder à une page non autorisée, rediriger vers Mon inventaire
       if (authStore.isUser) {
-        next('/catalogue')
+        next('/')
         return
       }
-      // Sinon, rediriger vers dashboard
+      // Sinon, rediriger vers Mon inventaire
       next('/')
       return
     }

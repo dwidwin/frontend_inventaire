@@ -34,6 +34,11 @@ import {
   UserGroupIcon,
   CurrencyDollarIcon,
   BellIcon,
+  TruckIcon,
+  CheckCircleIcon,
+  CalendarDaysIcon,
+  ExclamationTriangleIcon,
+  UserMinusIcon,
 } from '@heroicons/vue/24/outline'
 
 interface Props {
@@ -53,6 +58,11 @@ const iconComponent = computed(() => {
     UserGroupIcon,
     CurrencyDollarIcon,
     BellIcon,
+    TruckIcon,
+    CheckCircleIcon,
+    CalendarDaysIcon,
+    ExclamationTriangleIcon,
+    UserMinusIcon,
   }
   return iconMap[props.icon] || CubeIcon
 })

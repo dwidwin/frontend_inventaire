@@ -138,7 +138,6 @@ const applyFilters = () => {
 
 const showDetails = (item: AuditLog) => {
   // TODO: Ouvrir modal avec les détails
-  console.log('Show details:', item)
 }
 
 // Utilitaires

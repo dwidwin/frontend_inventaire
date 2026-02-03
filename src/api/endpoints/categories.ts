@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/api/client'
-import type { Category, CreateCategoryDto, UpdateCategoryDto } from '@/types'
+import type { Category, CreateCategoryDto, UpdateCategoryDto, AuditLog } from '@/types'
 
 export const categoriesApi = {
   // Liste des catégories
@@ -10,6 +10,11 @@ export const categoriesApi = {
   // Détail d'une catégorie
   get: (id: string): Promise<Category> => {
     return apiGet<Category>(`/api/categories/${id}`)
+  },
+
+  // Historique des modifications d'une catégorie
+  getHistory: (id: string): Promise<{ data: AuditLog[] }> => {
+    return apiGet<{ data: AuditLog[] }>(`/api/categories/${id}/history`)
   },
 
   // Créer une catégorie

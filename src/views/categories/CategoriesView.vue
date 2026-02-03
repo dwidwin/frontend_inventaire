@@ -53,7 +53,8 @@
     
     <DeleteConfirmModal
       v-if="showDeleteCategoryModal && selectedCategory"
-      :model="selectedCategory as any"
+      :entity="selectedCategory"
+      entity-label="cette catégorie"
       @close="showDeleteCategoryModal = false; selectedCategory = null"
       @confirmed="confirmDeleteCategory"
     />

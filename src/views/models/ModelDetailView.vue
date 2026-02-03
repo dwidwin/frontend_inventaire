@@ -59,6 +59,10 @@
                 <dt class="text-sm font-medium text-gray-500">Code-barres</dt>
                 <dd class="mt-1 text-sm text-gray-900 font-mono">{{ model.codeBarre }}</dd>
               </div>
+              <div v-if="model?.taillePointure">
+                <dt class="text-sm font-medium text-gray-500">Taille / Pointure</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ model.taillePointure }}</dd>
+              </div>
               <div>
                 <dt class="text-sm font-medium text-gray-500">État</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ model?.etat || 'en_stock' }}</dd>
@@ -106,12 +110,12 @@
             >
               Déplacer
             </button>
-            <button
-              @click="showAssignModal = true"
-              class="w-full btn btn-secondary btn-sm"
+            <RouterLink
+              to="/transactions"
+              class="w-full btn btn-secondary btn-sm block text-center"
             >
-              Affecter
-            </button>
+              Créer affectation / location
+            </RouterLink>
             <button
               @click="showStatusModal = true"
               class="w-full btn btn-secondary btn-sm"
@@ -123,32 +127,37 @@
       </div>
     </div>
 
-    <!-- Historique et affectations -->
+    <!-- Historique et locations / affectations -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-      <!-- Affectations -->
+      <!-- Locations / Affectations -->
       <div class="card">
         <div class="card-header">
-          <h3 class="text-lg font-medium text-gray-900">Affectations</h3>
+          <h3 class="text-lg font-medium text-gray-900">Locations / Affectations</h3>
         </div>
         <div class="card-body">
-          <div v-if="isLoadingAssignments" class="text-center py-8 text-gray-500">
+          <div v-if="isLoadingRentalItems" class="text-center py-8 text-gray-500">
             Chargement...
           </div>
-          <div v-else-if="!assignments || assignments.length === 0" class="text-center py-8 text-gray-500">
-            Aucune affectation
+          <div v-else-if="!rentalItems.length" class="text-center py-8 text-gray-500">
+            Aucune location ni affectation
           </div>
           <div v-else class="space-y-3">
             <div
-              v-for="assignment in assignments"
-              :key="assignment.id"
+              v-for="item in rentalItems"
+              :key="item.id"
               class="p-3 bg-gray-50 rounded-lg"
             >
               <div class="text-sm font-medium text-gray-900">
-                {{ assignment.user?.username || assignment.team?.name || 'Inconnu' }}
+                {{ (item.transaction as { isAssignment?: boolean; counterpartyUser?: { username: string }; counterpartyTeam?: { name: string }; externalName?: string })?.isAssignment ? 'Affectation' : 'Location' }}
+                :
+                {{ (item.transaction as { counterpartyUser?: { username: string }; counterpartyTeam?: { name: string }; externalName?: string })?.counterpartyUser?.username
+                  || (item.transaction as { counterpartyTeam?: { name: string } })?.counterpartyTeam?.name
+                  || (item.transaction as { externalName?: string })?.externalName
+                  || 'Inconnu' }}
               </div>
               <div class="text-xs text-gray-500 mt-1">
-                Depuis le {{ formatDate(assignment.startAt) }}
-                <span v-if="assignment.endAt"> jusqu'au {{ formatDate(assignment.endAt) }}</span>
+                Depuis le {{ formatDate((item.transaction as { startAt: string }).startAt) }}
+                <span v-if="item.returnedAt"> jusqu'au {{ formatDate(item.returnedAt) }}</span>
                 <span v-else class="text-green-600"> (Active)</span>
               </div>
             </div>
@@ -179,31 +188,10 @@
       </div>
     </div>
 
-    <!-- Historique -->
+    <!-- Historique des modifications -->
     <div class="card">
-      <div class="card-header">
-        <h3 class="text-lg font-medium text-gray-900">Historique</h3>
-      </div>
       <div class="card-body">
-        <div v-if="isLoadingHistory" class="text-center py-8 text-gray-500">
-          Chargement de l'historique...
-        </div>
-        <div v-else-if="!history || history.length === 0" class="text-center py-8 text-gray-500">
-          Aucun historique
-        </div>
-        <div v-else class="space-y-3">
-          <div
-            v-for="entry in history"
-            :key="entry.id"
-            class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg"
-          >
-            <div class="flex-1">
-              <div class="text-sm font-medium text-gray-900">{{ entry.title }}</div>
-              <div v-if="entry.description" class="text-xs text-gray-600 mt-1">{{ entry.description }}</div>
-              <div class="text-xs text-gray-500 mt-1">{{ formatDateTime(entry.timestamp) }}</div>
-            </div>
-          </div>
-        </div>
+        <ModelModificationHistory :model-id="modelId" />
       </div>
     </div>
 
@@ -222,13 +210,6 @@
       @moved="handleModelMoved"
     />
     
-    <AssignModelModal
-      v-if="showAssignModal && model"
-      :modelId="model.id"
-      @close="showAssignModal = false"
-      @created="handleAssignmentCreated"
-    />
-    
     <SetModelStatusModal
       v-if="showStatusModal && model"
       :modelId="model.id"
@@ -242,15 +223,15 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useMaterialModel, useModelHistory } from '@/composables/useMaterialModels'
-import { useAssignmentsByModel } from '@/composables/useAssignments'
+import { useMaterialModel } from '@/composables/useMaterialModels'
+import { useTransactionItemsByModel } from '@/composables/useTransactions'
 import { useModelActiveStatus } from '@/composables/useStatuses'
 import EditModelModal from '@/components/modals/EditModelModal.vue'
+import ModelModificationHistory from '@/components/ModelModificationHistory.vue'
 import MoveModelModal from '@/components/modals/MoveModelModal.vue'
-import AssignModelModal from '@/components/modals/AssignModelModal.vue'
 import SetModelStatusModal from '@/components/modals/SetModelStatusModal.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
-import { formatDate, formatDateTime } from '@/utils/formatDate'
+import { formatDate } from '@/utils/formatDate'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -258,14 +239,17 @@ const modelId = route.params.id as string
 
 // Queries
 const { data: model, isLoading: isLoadingModel } = useMaterialModel(modelId)
-const { data: assignments, isLoading: isLoadingAssignments } = useAssignmentsByModel(modelId)
+const { data: transactionItems, isLoading: isLoadingRentalItems } = useTransactionItemsByModel(modelId)
 const { data: activeStatuses, isLoading: isLoadingStatuses } = useModelActiveStatus(modelId)
-const { data: history, isLoading: isLoadingHistory } = useModelHistory(modelId)
+
+const rentalItems = computed(() => {
+  const items = transactionItems.value || []
+  return items.filter((item) => (item.transaction as { type?: string })?.type === 'rental')
+})
 
 // État local
 const showEditModal = ref(false)
 const showMoveModal = ref(false)
-const showAssignModal = ref(false)
 const showStatusModal = ref(false)
 
 // Actions
@@ -275,10 +259,6 @@ const handleModelUpdated = () => {
 
 const handleModelMoved = () => {
   showMoveModal.value = false
-}
-
-const handleAssignmentCreated = () => {
-  showAssignModal.value = false
 }
 
 const handleStatusUpdated = () => {

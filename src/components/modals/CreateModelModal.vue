@@ -107,6 +107,20 @@
             />
           </div>
 
+          <!-- Taille / Pointure -->
+          <div class="mb-4">
+            <label for="taillePointure" class="form-label">
+              Taille / Pointure
+            </label>
+            <input
+              id="taillePointure"
+              v-model="form.taillePointure"
+              type="text"
+              class="form-input"
+              placeholder="Ex: 42, M, L"
+            />
+          </div>
+
           <!-- Emplacement -->
           <div class="mb-4">
             <label for="locationId" class="form-label">
@@ -247,6 +261,7 @@ const form = reactive<CreateMaterialModelDto>({
   referenceFournisseur: '',
   description: '',
   codeBarre: '',
+  taillePointure: '',
   locationId: undefined,
   etat: 'en_stock',
   photoUrl: undefined,
@@ -267,6 +282,7 @@ const handleClose = () => {
   form.referenceFournisseur = ''
   form.description = ''
   form.codeBarre = ''
+  form.taillePointure = ''
   form.locationId = undefined
   form.etat = 'en_stock'
   form.photoUrl = undefined
@@ -348,6 +364,7 @@ const handleSubmit = async () => {
       referenceFournisseur: form.referenceFournisseur?.trim() || undefined,
       description: form.description?.trim() || undefined,
       codeBarre: form.codeBarre?.trim() || undefined,
+      taillePointure: form.taillePointure?.trim() || undefined,
       locationId: form.locationId || undefined,
       etat: etat,
       photoUrl: form.photoUrl || undefined,

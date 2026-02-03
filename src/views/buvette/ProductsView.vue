@@ -70,7 +70,6 @@ const columns = [
 
 const handleEdit = (product: Product) => {
   // TODO: Implémenter modal d'édition
-  console.log('Edit product:', product)
 }
 
 const handleDelete = async (product: Product) => {

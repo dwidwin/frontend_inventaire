@@ -26,10 +26,9 @@ export const canAccessRoute = (
     return !route.meta.requiresAuth || route.meta.requiresManager !== false
   }
 
-  // User : accès limité
+  // User : accès limité (Mon inventaire, Catalogue, Notifications)
   if (userRole === 'USER') {
-    // Routes autorisées pour les users
-    const allowedPaths = ['/catalogue', '/notifications']
+    const allowedPaths = ['/', '/catalogue', '/notifications']
     const path = route.path.split('?')[0]
     
     if (allowedPaths.includes(path)) {
@@ -40,8 +39,12 @@ export const canAccessRoute = (
     if (path.startsWith('/catalogue/') || path.startsWith('/notifications/')) {
       return true
     }
-    
-    
+
+    // Fiche modèle en lecture seule : /models/:id uniquement (pas la liste /models)
+    if (path.match(/^\/models\/[^/]+$/)) {
+      return true
+    }
+
     return false
   }
 

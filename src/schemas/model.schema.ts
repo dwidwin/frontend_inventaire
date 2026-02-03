@@ -26,6 +26,11 @@ export const modelSchema = yup.object({
     .max(50, 'L\'état ne peut pas dépasser 50 caractères')
     .optional()
     .nullable(),
+  taillePointure: yup
+    .string()
+    .max(50, 'La taille/pointure ne peut pas dépasser 50 caractères')
+    .optional()
+    .nullable(),
   referenceFournisseur: yup
     .string()
     .max(100, 'La référence fournisseur ne peut pas dépasser 100 caractères')

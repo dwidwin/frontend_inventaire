@@ -308,8 +308,8 @@ const handleSubmit = async () => {
       notes: form.value.notes || undefined,
     })
 
-    // Invalider les queries pour rafraîchir les données
-    queryClient.invalidateQueries({ queryKey: ['assignments'] })
+    // Invalider uniquement la liste (exact) pour éviter de refetcher getByModel('')
+    queryClient.invalidateQueries({ queryKey: ['assignments'], exact: true })
     queryClient.invalidateQueries({ queryKey: ['assignments', 'model', form.value.modelId] })
     queryClient.invalidateQueries({ queryKey: ['material-models', form.value.modelId] })
 

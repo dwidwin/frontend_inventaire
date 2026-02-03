@@ -108,12 +108,9 @@ export function getCategoriesWithIndent(
     })
   }
 
-  // Trier récursivement
-  const sortDeep = (nodes: Category[]) => {
-    nodes.sort((a, b) => a.name.localeCompare(b.name))
-    nodes.forEach((n) => n.children && n.children.length > 0 && sortDeep(n.children))
-  }
-  sortDeep(roots)
+  // Tri non mutant : retourne une copie triée (évite "target is readonly" avec Vue Query)
+  const getSorted = (nodes: Category[]) =>
+    [...nodes].sort((a, b) => a.name.localeCompare(b.name))
 
   // Parcourir l'arbre pour créer une liste plate avec indentation
   const result: CategoryWithIndent[] = []
@@ -134,16 +131,15 @@ export function getCategoriesWithIndent(
       displayText: `${indent}${node.name}`
     })
 
-    // Parcourir les enfants récursivement
+    // Parcourir les enfants récursivement (ordre trié, sans muter node.children)
     if (node.children && node.children.length > 0) {
-      sortDeep(node.children)
-      node.children.forEach((child) => {
+      getSorted(node.children).forEach((child) => {
         traverse(child, level + 1, visited)
       })
     }
   }
 
-  roots.forEach((root) => {
+  getSorted(roots).forEach((root) => {
     traverse(root, 0)
   })
 

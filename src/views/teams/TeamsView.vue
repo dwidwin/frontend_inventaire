@@ -84,7 +84,6 @@ const handleEdit = (team: Team) => {
 const handleDelete = (team: Team) => {
   selectedTeam.value = team
   // TODO: Ouvrir modal de confirmation
-  console.log('Delete team:', team)
 }
 
 const handleCloseModal = () => {

@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { apiPost, apiGet } from '@/api/client'
 import { logger } from '@/utils/logger'
 import { storage } from '@/utils/storage'
+import { canAccessRoute } from '@/utils/permissions'
 import type { User, LoginDto, AuthResponse } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -39,33 +41,16 @@ export const useAuthStore = defineStore('auth', () => {
   // Peut écrire/modifier : admin et manager peuvent écrire, user ne peut que lire
   const canWrite = computed(() => isAdmin.value || isManager.value)
   
-  // Vérifier l'accès à une page selon le rôle
+  // Vérifier l'accès à une page selon le rôle (délègue à canAccessRoute pour une seule source de vérité)
   const canAccessPage = (path: string): boolean => {
-    if (!isAuthenticated.value) return false
-    
-    // Admin : accès à tout
-    if (isAdmin.value) return true
-    
-    // Manager : accès à tout sauf Settings
-    if (isManager.value) {
-      return path !== '/settings'
-    }
-    
-    // User : accès uniquement à Catalogue et Notifications
-    if (isUser.value) {
-      // Routes autorisées pour les users
-      if (path === '/catalogue' || path === '/notifications') {
-        return true
-      }
-      // Routes qui commencent par /catalogue/ ou /notifications/ (sous-routes)
-      if (path.startsWith('/catalogue/') || path.startsWith('/notifications/')) {
-        return true
-      }
-      // Toutes les autres routes sont interdites
+    if (!isAuthenticated.value || !user.value) return false
+    try {
+      const router = useRouter()
+      const resolved = router.resolve(path)
+      return canAccessRoute(resolved, user.value)
+    } catch {
       return false
     }
-    
-    return false
   }
 
   // Actions

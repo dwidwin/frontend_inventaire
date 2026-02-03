@@ -46,7 +46,7 @@ export const useCreateAssignment = () => {
   return useMutation({
     mutationFn: (data: CreateAssignmentDto) => assignmentsApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['assignments'], exact: true })
     },
   })
 }
@@ -58,7 +58,7 @@ export const useCloseAssignment = () => {
     mutationFn: ({ id, data }: { id: string; data: CloseAssignmentDto }) =>
       assignmentsApi.close(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['assignments'], exact: true })
     },
   })
 }

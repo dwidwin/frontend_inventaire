@@ -130,8 +130,60 @@
             </p>
           </div>
 
-          <!-- Historique -->
-          <EntityHistory :entity="status" />
+          <!-- Historique des modifications -->
+          <div v-if="status" class="mt-6 pt-6 border-t border-gray-200">
+            <h4 class="text-sm font-medium text-gray-900 mb-4">Historique des modifications</h4>
+            <div v-if="isLoadingHistory" class="text-sm text-gray-500 text-center py-4">
+              Chargement de l'historique...
+            </div>
+            <div v-else-if="modificationHistory && modificationHistory.length > 0" class="space-y-2 max-h-64 overflow-y-auto pr-2">
+              <div
+                v-for="(event, index) in modificationHistory"
+                :key="event.id || index"
+                class="flex items-start space-x-3"
+              >
+                <div class="flex-shrink-0">
+                  <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center"
+                    :class="{
+                      'bg-green-100': event.action === 'statuses.create',
+                      'bg-blue-100': event.action === 'statuses.update'
+                    }"
+                  >
+                    <PlusIcon v-if="event.action === 'statuses.create'" class="w-4 h-4 text-green-600" />
+                    <PencilIcon v-else-if="event.action === 'statuses.update'" class="w-4 h-4 text-blue-600" />
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900">
+                    <span v-if="event.action === 'statuses.create'">Créé</span>
+                    <span v-else-if="event.action === 'statuses.update'">Modifié</span>
+                    <span v-else>Événement</span>
+                  </p>
+                  <p class="text-sm text-gray-600">
+                    <span v-if="event.actorUser">
+                      par <span class="font-medium">{{ event.actorUser.username || event.actorUser.email }}</span>
+                    </span>
+                    <span v-else class="text-gray-400">par un utilisateur inconnu</span>
+                    <span v-if="event.createdAt" class="ml-2">
+                      le <span class="font-medium">{{ formatDateTimeWithDay(event.createdAt) }}</span>
+                    </span>
+                  </p>
+                  <div v-if="event.details?.changes && event.details.changes.length > 0" class="mt-2 pl-4 border-l-2 border-blue-200">
+                    <ul class="text-xs text-gray-600 space-y-1">
+                      <li v-for="(change, idx) in event.details.changes" :key="idx" class="flex items-start">
+                        <span class="mr-1 text-blue-600">•</span>
+                        <span>{{ change }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500 text-center py-4">
+              Aucun historique disponible
+            </div>
+          </div>
 
           <!-- Erreurs -->
           <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -163,11 +215,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { ref, watch, onMounted } from 'vue'
+import { XMarkIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import { useUpdateStatus } from '@/composables/useStatuses'
-import EntityHistory from '@/components/EntityHistory.vue'
-import type { Status, UpdateStatusDto } from '@/types'
+import { statusesApi } from '@/api/endpoints/statuses'
+import { formatDateTimeWithDay } from '@/utils/formatDate'
+import type { Status, UpdateStatusDto, AuditLog } from '@/types'
 import { StatusGroup } from '@/types'
 
 interface Props {
@@ -194,6 +247,25 @@ const form = ref<UpdateStatusDto>({
 const errors = ref<Record<string, string>>({})
 const error = ref('')
 const isSubmitting = ref(false)
+const modificationHistory = ref<AuditLog[]>([])
+const isLoadingHistory = ref(false)
+
+// Charger l'historique des modifications
+const loadModificationHistory = async () => {
+  if (!props.status?.id) return
+  isLoadingHistory.value = true
+  try {
+    const response = await statusesApi.getHistory(props.status.id)
+    modificationHistory.value = (response.data || []).filter(
+      (log: AuditLog) =>
+        log.action === 'statuses.create' || log.action === 'statuses.update'
+    )
+  } catch {
+    modificationHistory.value = []
+  } finally {
+    isLoadingHistory.value = false
+  }
+}
 
 // Mettre à jour le formulaire si le statut change
 watch(() => props.status, (newStatus) => {
@@ -205,8 +277,13 @@ watch(() => props.status, (newStatus) => {
       sortOrder: newStatus.sortOrder,
       isActive: newStatus.isActive,
     }
+    loadModificationHistory()
   }
 }, { immediate: true })
+
+onMounted(() => {
+  if (props.status?.id) loadModificationHistory()
+})
 
 const handleClose = () => {
   emit('close')
@@ -234,6 +311,7 @@ const handleSubmit = async () => {
       id: props.status.id,
       data: form.value,
     })
+    await loadModificationHistory()
     emit('updated')
     handleClose()
   } catch (err: any) {

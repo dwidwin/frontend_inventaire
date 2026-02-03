@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { transactionsApi } from '@/api/endpoints'
-import type { Transaction, CreateRentalDto, CreateSaleDto, ReturnRentalDto } from '@/types'
+import type { Transaction, TransactionItem, CreateRentalDto, CreateSaleDto, ReturnRentalDto } from '@/types'
 
 export const useTransactions = () => {
   return useQuery({
@@ -14,6 +14,14 @@ export const useTransaction = (id: string) => {
     queryKey: ['transactions', id],
     queryFn: () => transactionsApi.get(id),
     enabled: !!id,
+  })
+}
+
+export const useTransactionItemsByModel = (modelId: string) => {
+  return useQuery({
+    queryKey: ['transactions', 'model', modelId],
+    queryFn: () => transactionsApi.getItemsByModel(modelId),
+    enabled: !!modelId,
   })
 }
 

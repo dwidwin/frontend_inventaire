@@ -101,77 +101,6 @@
         </DataTable>
       </div>
 
-      <!-- Transactions -->
-      <div v-if="activeTab === 'transactions'">
-        <div class="mb-6 flex justify-between items-center">
-          <h2 class="text-lg font-medium text-gray-900">Transactions</h2>
-          <div class="flex items-center space-x-3">
-            <button
-              @click="showCreateRentalModal = true"
-              class="btn btn-primary"
-            >
-              <PlusIcon class="h-5 w-5 mr-2" />
-              Nouvelle location
-            </button>
-            <button
-              @click="showCreateSaleModal = true"
-              class="btn btn-secondary"
-            >
-              <CurrencyDollarIcon class="h-5 w-5 mr-2" />
-              Nouvelle vente
-            </button>
-          </div>
-        </div>
-
-        <DataTable
-          :data="transactions || []"
-          :columns="transactionColumns"
-          :is-loading="isLoadingTransactions"
-          @edit="handleEditTransaction"
-          @delete="handleDeleteTransaction"
-        >
-          <template #cell-type="{ item }">
-            <StatusBadge
-              :status="item.type === 'rent' ? 'Location' : 'Vente'"
-              :color="item.type === 'rent' ? 'primary' : 'success'"
-            />
-          </template>
-          
-          <template #cell-counterparty="{ item }">
-            <div v-if="item.counterpartyUser" class="text-sm text-gray-900">
-              {{ item.counterpartyUser.username }}
-            </div>
-            <div v-else-if="item.counterpartyTeam" class="text-sm text-gray-900">
-              {{ item.counterpartyTeam.name }}
-            </div>
-            <div v-else-if="item.externalName" class="text-sm text-gray-900">
-              {{ item.externalName }}
-            </div>
-            <span v-else class="text-sm text-gray-500">-</span>
-          </template>
-          
-          <template #cell-startAt="{ item }">
-            <div class="text-sm text-gray-900">
-              {{ formatDate(item.startAt) }}
-            </div>
-          </template>
-          
-          <template #cell-dueAt="{ item }">
-            <div class="text-sm text-gray-900">
-              {{ formatDate(item.dueAt) }}
-            </div>
-          </template>
-          
-          <template #cell-status="{ item }">
-            <StatusBadge
-              :status="item.closedAt ? 'Clôturée' : 'En cours'"
-              :color="item.closedAt ? 'gray' : 'warning'"
-            />
-          </template>
-        </DataTable>
-      </div>
-
-
       <!-- Statuts -->
       <div v-if="activeTab === 'statuses'">
         <div class="mb-6 flex justify-between items-center">
@@ -352,13 +281,12 @@
 <script setup lang="ts">
 import { ref, computed, unref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { PlusIcon, CurrencyDollarIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon } from '@heroicons/vue/24/outline'
 import { useCategories } from '@/composables/useCategories'
 import { useUsers } from '@/composables/useUsers'
 import { useStatuses, useDeleteStatus } from '@/composables/useStatuses'
 import { useQuery, useQueries } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints/materialModels'
-import { transactionsApi } from '@/api/endpoints/transactions'
 import DataTable from '@/components/DataTable.vue'
 import CategoryTree from '@/components/CategoryTree.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -369,9 +297,8 @@ import EditModelModal from '@/components/modals/EditModelModal.vue'
 import CreateStatusModal from '@/components/modals/CreateStatusModal.vue'
 import EditStatusModal from '@/components/modals/EditStatusModal.vue'
 import DeleteStatusModal from '@/components/modals/DeleteStatusModal.vue'
-import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
 import EditUserModal from '@/components/modals/EditUserModal.vue'
-import type { Category, MaterialModel, Transaction, User, Status, StatusGroup } from '@/types'
+import type { Category, MaterialModel, User, Status, StatusGroup } from '@/types'
 import { StatusGroup as StatusGroupEnum } from '@/types'
 import { formatDate } from '@/utils/formatDate'
 
@@ -382,7 +309,6 @@ const router = useRouter()
 const tabs = [
   { name: 'categories', label: 'Catégories' },
   { name: 'models', label: 'Modèles' },
-  { name: 'transactions', label: 'Transactions' },
   { name: 'statuses', label: 'Statuts' },
   { name: 'users', label: 'Gestion des utilisateurs' },
 ]
@@ -420,10 +346,6 @@ const { data: modelsResponse, isLoading: isLoadingModels } = useQuery({
 // Extraire le tableau de modèles de la réponse paginée
 const models = computed(() => modelsResponse.value?.data || [])
 
-const { data: transactions, isLoading: isLoadingTransactions } = useQuery({
-  queryKey: ['transactions'],
-  queryFn: () => transactionsApi.list(),
-})
 const { data: users, isLoading: isLoadingUsers } = useUsers()
 const { data: statuses, isLoading: isLoadingStatuses } = useStatuses()
 const deleteStatusMutation = useDeleteStatus()
@@ -437,12 +359,6 @@ const selectedCategory = ref<Category | null>(null)
 const showCreateModelModal = ref(false)
 const showEditModelModal = ref(false)
 const selectedModel = ref<MaterialModel | null>(null)
-
-// État local - Transactions
-const showCreateRentalModal = ref(false)
-const showCreateSaleModal = ref(false)
-const selectedTransaction = ref<Transaction | null>(null)
-
 
 // État local - Utilisateurs
 const showCreateUserModal = ref(false)
@@ -465,17 +381,6 @@ const modelColumns = [
   { key: 'mainImageUrl', label: 'Image', sortable: false },
   { key: 'createdAt', label: 'Créé le', sortable: true },
 ]
-
-// Colonnes pour les transactions
-const transactionColumns = [
-  { key: 'type', label: 'Type', sortable: true },
-  { key: 'counterparty', label: 'Contrepartie', sortable: true },
-  { key: 'startAt', label: 'Début', sortable: true },
-  { key: 'dueAt', label: 'Échéance', sortable: true },
-  { key: 'totalAmount', label: 'Montant', sortable: true },
-  { key: 'status', label: 'Statut', sortable: true },
-]
-
 
 // Colonnes pour les statuts
 const statusColumns = [
@@ -504,7 +409,6 @@ const handleEditCategory = (category: Category) => {
 
 const handleDeleteCategory = (category: Category) => {
   // TODO: Implémenter la suppression
-  console.log('Delete category:', category)
 }
 
 const handleCategoryCreated = () => {
@@ -524,7 +428,6 @@ const handleEditModel = (model: MaterialModel) => {
 
 const handleDeleteModel = (model: MaterialModel) => {
   // TODO: Implémenter la suppression
-  console.log('Delete model:', model)
 }
 
 const handleModelCreated = () => {
@@ -536,19 +439,6 @@ const handleModelUpdated = () => {
   selectedModel.value = null
 }
 
-
-// Actions pour les transactions
-const handleEditTransaction = (transaction: Transaction) => {
-  selectedTransaction.value = transaction
-  // TODO: Ouvrir modal d'édition
-  console.log('Edit transaction:', transaction)
-}
-
-const handleDeleteTransaction = (transaction: Transaction) => {
-  selectedTransaction.value = transaction
-  // TODO: Ouvrir modal de confirmation
-  console.log('Delete transaction:', transaction)
-}
 
 // Actions pour les statuts
 const handleEditStatus = (status: Status) => {
@@ -597,7 +487,6 @@ const handleEditUser = (user: User) => {
 const handleDeleteUser = (user: User) => {
   selectedUser.value = user
   // TODO: Ouvrir modal de confirmation
-  console.log('Delete user:', user)
 }
 
 const handleUserUpdated = () => {

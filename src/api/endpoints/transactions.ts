@@ -2,9 +2,21 @@ import { apiGet, apiPost, apiPatch } from '@/api/client'
 import type { Transaction, CreateRentalDto, CreateSaleDto, ReturnRentalDto } from '@/types'
 
 export const transactionsApi = {
-  // Liste des transactions
+  // Liste des transactions (réponse paginée ou tableau)
   list: (): Promise<Transaction[]> => {
-    return apiGet<Transaction[]>('/api/transactions')
+    return apiGet<{ data?: Transaction[] } | Transaction[]>('/api/transactions').then((r) =>
+      Array.isArray(r) ? r : (r?.data ?? [])
+    )
+  },
+
+  // Locations / affectations de l'utilisateur connecté (Mon inventaire)
+  getMyRentals: (): Promise<Transaction[]> => {
+    return apiGet<Transaction[]>('/api/transactions/rentals/me')
+  },
+
+  // Lignes de transaction pour un modèle (historique locations/affectations/ventes)
+  getItemsByModel: (modelId: string): Promise<import('@/types').TransactionItem[]> => {
+    return apiGet<import('@/types').TransactionItem[]>(`/api/transactions/model/${modelId}`)
   },
 
   // Détail d'une transaction

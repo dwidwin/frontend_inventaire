@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/api/client'
-import type { Status, CreateStatusDto, UpdateStatusDto, ModelStatus, SetModelStatusDto } from '@/types'
+import type { Status, CreateStatusDto, UpdateStatusDto, ModelStatus, SetModelStatusDto, AuditLog } from '@/types'
 
 export const statusesApi = {
   // Liste des statuts
@@ -10,6 +10,11 @@ export const statusesApi = {
   // Détail d'un statut
   get: (id: string): Promise<Status> => {
     return apiGet<Status>(`/api/statuses/${id}`)
+  },
+
+  // Historique des modifications d'un statut
+  getHistory: (id: string): Promise<{ data: AuditLog[] }> => {
+    return apiGet<{ data: AuditLog[] }>(`/api/statuses/${id}/history`)
   },
 
   // Créer un statut

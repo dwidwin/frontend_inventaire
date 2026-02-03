@@ -136,7 +136,6 @@ const handleEdit = (user: User) => {
 const handleDelete = (user: User) => {
   selectedUser.value = user
   // TODO: Ouvrir modal de confirmation
-  console.log('Delete user:', user)
 }
 
 const handleActivate = (user: User) => {

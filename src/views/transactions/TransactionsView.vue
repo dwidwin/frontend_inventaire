@@ -41,8 +41,8 @@
     >
       <template #cell-type="{ item }">
         <StatusBadge
-          :status="item.type === 'rent' ? 'Location' : 'Vente'"
-          :color="item.type === 'rent' ? 'primary' : 'success'"
+          :status="transactionTypeLabel(item)"
+          :color="transactionTypeColor(item)"
         />
       </template>
       
@@ -70,6 +70,13 @@
           {{ formatDate(item.dueAt) }}
         </div>
       </template>
+
+      <template #cell-totalAmount="{ item }">
+        <span v-if="item.totalAmount != null && item.totalAmount !== ''" class="text-sm font-medium text-gray-900">
+          {{ Number(item.totalAmount).toFixed(2) }} €
+        </span>
+        <span v-else class="text-sm text-gray-500">-</span>
+      </template>
       
       <template #cell-status="{ item }">
         <StatusBadge
@@ -78,6 +85,35 @@
         />
       </template>
     </DataTable>
+
+    <!-- Modals -->
+    <CreateRentalModal
+      v-if="showCreateRentalModal"
+      @close="showCreateRentalModal = false"
+      @created="handleRentalCreated"
+    />
+    <CreateSaleModal
+      v-if="showCreateSaleModal"
+      @close="showCreateSaleModal = false"
+      @created="handleSaleCreated"
+    />
+
+    <!-- Modal retour de location (Modifier) -->
+    <ReturnRentalModal
+      v-if="selectedTransaction && showEditModal && isRentalOpen(selectedTransaction)"
+      :transaction="selectedTransaction"
+      @close="handleCloseEdit"
+      @returned="handleReturned"
+    />
+
+    <!-- Modal confirmation suppression -->
+    <DeleteConfirmModal
+      v-if="selectedTransaction && showDeleteModal"
+      :entity="deleteEntityFromTransaction(selectedTransaction)"
+      entity-label="cette transaction"
+      @close="handleCloseDelete"
+      @confirmed="handleDeleteConfirmed"
+    />
   </div>
 </template>
 
@@ -89,9 +125,17 @@ import { useQuery } from '@tanstack/vue-query'
 import { transactionsApi } from '@/api/endpoints/transactions'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import CreateRentalModal from '@/components/modals/CreateRentalModal.vue'
+import CreateSaleModal from '@/components/modals/CreateSaleModal.vue'
+import ReturnRentalModal from '@/components/modals/ReturnRentalModal.vue'
+import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
+import { useToast } from '@/composables/useToast'
+import { useQueryClient } from '@tanstack/vue-query'
 import { formatDate } from '@/utils/formatDate'
 import type { Transaction } from '@/types'
 
+const toast = useToast()
+const queryClient = useQueryClient()
 const authStore = useAuthStore()
 
 // Queries
@@ -103,28 +147,88 @@ const { data: transactions, isLoading } = useQuery({
 // État local
 const showCreateRentalModal = ref(false)
 const showCreateSaleModal = ref(false)
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
 const selectedTransaction = ref<Transaction | null>(null)
 
 // Colonnes du tableau
 const columns = [
   { key: 'type', label: 'Type', sortable: true },
-  { key: 'counterparty', label: 'Contrepartie', sortable: true },
+  { key: 'counterparty', label: 'Assigné à', sortable: true },
   { key: 'startAt', label: 'Début', sortable: true },
   { key: 'dueAt', label: 'Échéance', sortable: true },
   { key: 'totalAmount', label: 'Montant', sortable: true },
   { key: 'status', label: 'Statut', sortable: true },
 ]
 
+// Helpers pour les modales
+function isRentalOpen(transaction: Transaction): boolean {
+  const type = transaction.type
+  if (type === 'sale') return false
+  if (transaction.closedAt) return false
+  return true
+}
+
+function deleteEntityFromTransaction(transaction: Transaction): { id: string; name: string } {
+  const label = transactionTypeLabel(transaction)
+  const dateStr = formatDate(transaction.startAt)
+  return { id: transaction.id, name: `${label} - ${dateStr}` }
+}
+
 // Actions
 const handleEdit = (transaction: Transaction) => {
   selectedTransaction.value = transaction
-  // TODO: Ouvrir modal d'édition
-  console.log('Edit transaction:', transaction)
+  if (!isRentalOpen(transaction)) {
+    toast.info(transaction.type === 'sale' ? 'Les ventes ne sont pas modifiables.' : 'Transaction déjà clôturée.')
+    return
+  }
+  showEditModal.value = true
 }
 
 const handleDelete = (transaction: Transaction) => {
   selectedTransaction.value = transaction
-  // TODO: Ouvrir modal de confirmation
-  console.log('Delete transaction:', transaction)
+  showDeleteModal.value = true
+}
+
+const handleCloseEdit = () => {
+  showEditModal.value = false
+  selectedTransaction.value = null
+}
+
+const handleCloseDelete = () => {
+  showDeleteModal.value = false
+  selectedTransaction.value = null
+}
+
+const handleReturned = () => {
+  handleCloseEdit()
+  toast.success('Retour enregistré')
+  queryClient.invalidateQueries({ queryKey: ['transactions'] })
+}
+
+const handleDeleteConfirmed = () => {
+  handleCloseDelete()
+  // L'API ne propose pas de suppression de transaction pour l'instant
+  toast.info('Suppression non disponible pour les transactions.')
+}
+
+const handleRentalCreated = () => {
+  showCreateRentalModal.value = false
+  toast.success('Location créée avec succès')
+}
+
+const handleSaleCreated = () => {
+  showCreateSaleModal.value = false
+  toast.success('Vente créée avec succès')
+}
+
+function transactionTypeLabel(item: Transaction): string {
+  if (item.type === 'sale') return 'Vente'
+  return item.isAssignment ? 'Affectation' : 'Location'
+}
+
+function transactionTypeColor(item: Transaction): string {
+  if (item.type === 'sale') return 'success'
+  return item.isAssignment ? 'primary' : 'primary'
 }
 </script>

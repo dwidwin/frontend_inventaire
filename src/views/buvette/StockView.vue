@@ -91,7 +91,6 @@ const columns = [
 
 const handleEdit = (stock: Stock) => {
   // TODO: Implémenter modal d'édition/ajustement
-  console.log('Edit stock:', stock)
 }
 </script>
 

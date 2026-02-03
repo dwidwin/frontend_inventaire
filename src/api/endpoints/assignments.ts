@@ -12,6 +12,11 @@ export const assignmentsApi = {
     return apiGet<Assignment[]>('/api/assignments/active')
   },
 
+  // Affectations de l'utilisateur connecté (actives)
+  getMyAssignments: (): Promise<Assignment[]> => {
+    return apiGet<Assignment[]>('/api/assignments/me')
+  },
+
   // Détail d'une affectation
   get: (id: string): Promise<Assignment> => {
     return apiGet<Assignment>(`/api/assignments/${id}`)
@@ -19,6 +24,7 @@ export const assignmentsApi = {
 
   // Affectations par modèle
   getByModel: (modelId: string): Promise<Assignment[]> => {
+    if (!modelId) return Promise.resolve([])
     return apiGet<Assignment[]>(`/api/assignments/model/${modelId}`)
   },
 

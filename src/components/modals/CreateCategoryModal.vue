@@ -90,8 +90,60 @@
             </div>
           </div>
 
-          <!-- Historique (uniquement en mode édition) -->
-          <EntityHistory v-if="isEditMode" :entity="category" />
+          <!-- Historique des modifications (uniquement en mode édition) -->
+          <div v-if="isEditMode && category" class="mt-6 pt-6 border-t border-gray-200">
+            <h4 class="text-sm font-medium text-gray-900 mb-4">Historique des modifications</h4>
+            <div v-if="isLoadingHistory" class="text-sm text-gray-500 text-center py-4">
+              Chargement de l'historique...
+            </div>
+            <div v-else-if="modificationHistory && modificationHistory.length > 0" class="space-y-2 max-h-64 overflow-y-auto pr-2">
+              <div
+                v-for="(event, index) in modificationHistory"
+                :key="event.id || index"
+                class="flex items-start space-x-3"
+              >
+                <div class="flex-shrink-0">
+                  <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center"
+                    :class="{
+                      'bg-green-100': event.action === 'categories.create',
+                      'bg-blue-100': event.action === 'categories.update'
+                    }"
+                  >
+                    <PlusIcon v-if="event.action === 'categories.create'" class="w-4 h-4 text-green-600" />
+                    <PencilIcon v-else-if="event.action === 'categories.update'" class="w-4 h-4 text-blue-600" />
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900">
+                    <span v-if="event.action === 'categories.create'">Créé</span>
+                    <span v-else-if="event.action === 'categories.update'">Modifié</span>
+                    <span v-else>Événement</span>
+                  </p>
+                  <p class="text-sm text-gray-600">
+                    <span v-if="event.actorUser">
+                      par <span class="font-medium">{{ event.actorUser.username || event.actorUser.email }}</span>
+                    </span>
+                    <span v-else class="text-gray-400">par un utilisateur inconnu</span>
+                    <span v-if="event.createdAt" class="ml-2">
+                      le <span class="font-medium">{{ formatDateTimeWithDay(event.createdAt) }}</span>
+                    </span>
+                  </p>
+                  <div v-if="event.details?.changes && event.details.changes.length > 0" class="mt-2 pl-4 border-l-2 border-blue-200">
+                    <ul class="text-xs text-gray-600 space-y-1">
+                      <li v-for="(change, idx) in event.details.changes" :key="idx" class="flex items-start">
+                        <span class="mr-1 text-blue-600">•</span>
+                        <span>{{ change }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500 text-center py-4">
+              Aucun historique disponible
+            </div>
+          </div>
         </form>
       </div>
 
@@ -126,13 +178,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import { useCategories, useCreateCategory, useUpdateCategory } from '@/composables/useCategories'
 import { getCategoryHierarchyPath, getCategoriesWithIndent } from '@/utils/categoryUtils'
 import { useToast } from '@/composables/useToast'
 import { logger } from '@/utils/logger'
-import EntityHistory from '@/components/EntityHistory.vue'
-import type { CreateCategoryDto, UpdateCategoryDto, Category } from '@/types'
+import { categoriesApi } from '@/api/endpoints/categories'
+import { formatDateTimeWithDay } from '@/utils/formatDate'
+import type { CreateCategoryDto, UpdateCategoryDto, Category, AuditLog } from '@/types'
 
 // Props
 const props = defineProps<{
@@ -157,6 +210,23 @@ const toast = useToast()
 
 // État du formulaire
 const isSubmitting = ref(false)
+const modificationHistory = ref<AuditLog[]>([])
+const isLoadingHistory = ref(false)
+
+const loadModificationHistory = async () => {
+  if (!props.category?.id) return
+  isLoadingHistory.value = true
+  try {
+    const response = await categoriesApi.getHistory(props.category.id)
+    modificationHistory.value = (response.data || []).filter(
+      (log: AuditLog) => log.action === 'categories.create' || log.action === 'categories.update'
+    )
+  } catch {
+    modificationHistory.value = []
+  } finally {
+    isLoadingHistory.value = false
+  }
+}
 
 // Mode édition
 const isEditMode = computed(() => !!props.category)
@@ -188,10 +258,12 @@ const initializeForm = () => {
 // Initialiser le formulaire au montage et quand la catégorie change
 onMounted(() => {
   initializeForm()
+  if (props.category?.id) loadModificationHistory()
 })
 
 watch(() => props.category, () => {
   initializeForm()
+  if (props.category?.id) loadModificationHistory()
 }, { immediate: true })
 
 // Réinitialiser le formulaire quand les catégories sont chargées (pour s'assurer que parentId est correctement sélectionné)
@@ -203,7 +275,6 @@ watch(() => categories.value, () => {
       props.category.parent?.id ||
       (categories.value.find((c) => c.id === props.category!.id)?.parent?.id ?? '')
     form.parentId = resolvedParentId || ''
-    console.log('Catégorie parente sélectionnée:', form.parentId || '<empty string>', 'pour la catégorie:', props.category.name)
   }
 }, { immediate: true })
 
@@ -303,6 +374,7 @@ const handleSubmit = async () => {
         data: updateData
       })
       
+      await loadModificationHistory()
       emit('updated')
     } else {
       // Mode création

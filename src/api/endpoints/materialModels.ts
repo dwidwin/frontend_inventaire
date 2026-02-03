@@ -1,10 +1,34 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/api/client'
-import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, MoveModelDto, UpdateModelCategoriesDto, ModelHistoryEntry, PaginatedResponse } from '@/types'
+import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, MoveModelDto, UpdateModelCategoriesDto, ModelHistoryEntry, PaginatedResponse, AuditLog } from '@/types'
+
+export interface ListMaterialModelsParams {
+  page?: number
+  limit?: number
+  sortBy?: string
+  sortOrder?: 'ASC' | 'DESC'
+  etat?: string
+  q?: string
+  taillePointure?: string[]
+}
 
 export const materialModelsApi = {
-  // Liste des modèles
-  list: (): Promise<PaginatedResponse<MaterialModel>> => {
-    return apiGet<PaginatedResponse<MaterialModel>>('/api/material-models')
+  // Liste des modèles (params optionnels pour filtres dont taillePointure)
+  list: (params?: ListMaterialModelsParams): Promise<PaginatedResponse<MaterialModel>> => {
+    if (!params || Object.keys(params).length === 0) {
+      return apiGet<PaginatedResponse<MaterialModel>>('/api/material-models')
+    }
+    const searchParams = new URLSearchParams()
+    if (params.page != null) searchParams.set('page', String(params.page))
+    if (params.limit != null) searchParams.set('limit', String(params.limit))
+    if (params.sortBy) searchParams.set('sortBy', params.sortBy)
+    if (params.sortOrder) searchParams.set('sortOrder', params.sortOrder)
+    if (params.etat) searchParams.set('etat', params.etat)
+    if (params.q) searchParams.set('q', params.q)
+    if (params.taillePointure?.length) {
+      params.taillePointure.forEach((s) => searchParams.append('taillePointure', s))
+    }
+    const query = searchParams.toString()
+    return apiGet<PaginatedResponse<MaterialModel>>(`/api/material-models${query ? `?${query}` : ''}`)
   },
 
   // Recherche de modèles
@@ -37,9 +61,14 @@ export const materialModelsApi = {
     return apiPatch<MaterialModel>(`/api/material-models/${id}/categories`, data)
   },
 
-  // Historique d'un modèle
+  // Historique d'un modèle (timeline statuts, affectations, emplacements)
   getHistory: (id: string): Promise<ModelHistoryEntry[]> => {
     return apiGet<ModelHistoryEntry[]>(`/api/material-models/${id}/history`)
+  },
+
+  // Historique des modifications du modèle (qui a modifié quoi)
+  getModificationHistory: (id: string): Promise<{ data: AuditLog[] }> => {
+    return apiGet<{ data: AuditLog[] }>(`/api/material-models/${id}/modification-history`)
   },
 
   // Supprimer un modèle

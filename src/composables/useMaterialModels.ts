@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints'
-import { logger } from '@/utils/logger'
-import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, MoveModelDto, UpdateModelCategoriesDto, ModelHistoryEntry } from '@/types'
+import type { MaterialModel, CreateMaterialModelDto, UpdateMaterialModelDto, MoveModelDto, UpdateModelCategoriesDto, AuditLog } from '@/types'
 import { computed, type Ref, type ComputedRef } from 'vue'
 
 export const useMaterialModels = () => {
@@ -31,19 +30,13 @@ export const useSearchMaterialModels = (query: Ref<string> | ComputedRef<string>
   })
 }
 
-export const useModelHistory = (modelId: string) => {
+export const useModelModificationHistory = (modelId: string) => {
   return useQuery({
-    queryKey: ['material-models', modelId, 'history'],
+    queryKey: ['material-models', modelId, 'modification-history'],
     queryFn: async () => {
-      try {
-        return await materialModelsApi.getHistory(modelId)
-      } catch (error: any) {
-        if (error?.response?.status === 404) {
-          logger.warn(`Historique introuvable pour le modèle ${modelId}`)
-          return []
-        }
-        throw error
-      }
+      const response = await materialModelsApi.getModificationHistory(modelId)
+      const raw = response.data || []
+      return raw.filter((log: AuditLog) => log.action === 'material-models.update')
     },
     enabled: !!modelId,
   })
@@ -69,6 +62,7 @@ export const useUpdateMaterialModel = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['material-models'] })
       queryClient.invalidateQueries({ queryKey: ['material-models', id] })
+      queryClient.invalidateQueries({ queryKey: ['material-models', id, 'modification-history'] })
     },
   })
 }
@@ -93,6 +87,7 @@ export const useMoveModel = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['material-models'] })
       queryClient.invalidateQueries({ queryKey: ['material-models', id] })
+      queryClient.invalidateQueries({ queryKey: ['material-models', id, 'modification-history'] })
     },
   })
 }

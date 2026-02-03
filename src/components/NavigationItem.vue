@@ -35,6 +35,7 @@ import {
   UserIcon,
   DocumentTextIcon,
   Cog6ToothIcon,
+  ChartBarIcon,
 } from '@heroicons/vue/24/outline'
 
 interface NavigationItem {
@@ -64,6 +65,7 @@ const iconComponent = computed(() => {
     UserIcon,
     DocumentTextIcon,
     Cog6ToothIcon,
+    ChartBarIcon,
   }
   return iconMap[props.item.icon] || HomeIcon
 })

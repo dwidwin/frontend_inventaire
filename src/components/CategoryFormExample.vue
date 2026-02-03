@@ -153,12 +153,10 @@ const openEditModal = (category: Category) => {
 
 const handleCategoryCreated = () => {
   showCreateModal.value = false
-  console.log('Catégorie créée avec succès!')
 }
 
 const handleCategoryUpdated = () => {
   showEditModal.value = false
   selectedCategory.value = null
-  console.log('Catégorie modifiée avec succès!')
 }
 </script>

@@ -105,6 +105,20 @@
             />
           </div>
 
+          <!-- Taille / Pointure -->
+          <div class="mb-4">
+            <label for="taillePointure" class="form-label">
+              Taille / Pointure
+            </label>
+            <input
+              id="taillePointure"
+              v-model="form.taillePointure"
+              type="text"
+              class="form-input"
+              placeholder="Ex: 42, M, L"
+            />
+          </div>
+
           <!-- Emplacement -->
           <div class="mb-4">
             <label for="locationId" class="form-label">
@@ -188,8 +202,10 @@
             </p>
           </div>
 
-          <!-- Historique -->
-          <EntityHistory :entity="model" />
+          <!-- Historique des modifications -->
+          <div v-if="model" class="mt-6 pt-6 border-t border-gray-200">
+            <ModelModificationHistory :model-id="model.id" />
+          </div>
 
           <!-- Erreurs -->
           <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -231,9 +247,8 @@ import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import { getLocationsWithIndent } from '@/utils/locationUtils'
 import { uploadsApi } from '@/api/endpoints/uploads'
 import { statusesApi } from '@/api/endpoints/statuses'
-import { logger } from '@/utils/logger'
-import EntityHistory from '@/components/EntityHistory.vue'
 import StatusSelector from '@/components/StatusSelector.vue'
+import ModelModificationHistory from '@/components/ModelModificationHistory.vue'
 import type { MaterialModel, UpdateMaterialModelDto } from '@/types'
 import { StatusGroup } from '@/types'
 
@@ -275,13 +290,18 @@ watch(activeModelStatuses, (newStatuses) => {
   }
 }, { immediate: true })
 
+// Emplacement actuel : priorité à locationId, sinon dérivé de location (objet)
+const currentLocationId = () =>
+  props.model.locationId ?? props.model.location?.id ?? undefined
+
 const form = ref<UpdateMaterialModelDto>({
   name: props.model.name,
   categoryIds: props.model.categories?.map(c => c.id) || [],
   referenceFournisseur: props.model.referenceFournisseur || '',
   description: props.model.description || '',
-  locationId: props.model.locationId || undefined,
+  locationId: currentLocationId(),
   codeBarre: props.model.codeBarre || '',
+  taillePointure: props.model.taillePointure || '',
   etat: props.model.etat || 'en_stock',
   photoUrl: props.model.photoUrl || undefined,
 })
@@ -298,13 +318,15 @@ const isSubmitting = ref(false)
 // Mettre à jour le formulaire si le modèle change
 watch(() => props.model, (newModel) => {
   if (newModel) {
+    const locationId = newModel.locationId ?? newModel.location?.id ?? undefined
     form.value = {
       name: newModel.name,
       categoryIds: newModel.categories?.map(c => c.id) || [],
       referenceFournisseur: newModel.referenceFournisseur || '',
       description: newModel.description || '',
-      locationId: newModel.locationId || undefined,
+      locationId,
       codeBarre: newModel.codeBarre || '',
+      taillePointure: newModel.taillePointure || '',
       etat: newModel.etat || 'en_stock',
       photoUrl: newModel.photoUrl || undefined,
     }
@@ -398,6 +420,7 @@ const handleSubmit = async () => {
       description: form.value.description?.trim() || undefined,
       locationId: form.value.locationId || undefined,
       codeBarre: form.value.codeBarre?.trim() || undefined,
+      taillePointure: form.value.taillePointure?.trim() || undefined,
       etat: etat,
     }
     

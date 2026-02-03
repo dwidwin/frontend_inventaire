@@ -100,9 +100,13 @@ const locationsWithIndent = computed(() => getLocationsWithIndent(locations.valu
 
 const moveModelMutation = useMoveModel()
 
+// Emplacement actuel : priorité à locationId, sinon dérivé de location (objet) — comme EditModelModal
+const currentLocationId = () =>
+  props.model.locationId ?? props.model.location?.id ?? null
+
 // État local
 const form = ref({
-  locationId: props.model.locationId || null,
+  locationId: currentLocationId(),
 })
 const error = ref('')
 const isSubmitting = ref(false)

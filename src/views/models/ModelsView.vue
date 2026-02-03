@@ -51,8 +51,13 @@
       </template>
 
       <template #cell-location="{ item }">
-        <span v-if="item.location" class="text-sm text-gray-900">{{ item.location.name }}</span>
+        <span v-if="item.location" class="text-sm text-gray-900">{{ getLocationParentChildPath(item.location, allLocations) }}</span>
         <span v-else class="text-sm text-gray-500">Non localisé</span>
+      </template>
+
+      <template #cell-taillePointure="{ item }">
+        <span v-if="item.taillePointure" class="text-sm text-gray-900">{{ item.taillePointure }}</span>
+        <span v-else class="text-sm text-gray-500">—</span>
       </template>
 
       <template #cell-etat="{ item }">
@@ -99,7 +104,8 @@
     
     <DeleteConfirmModal
       v-if="showDeleteModelModal && selectedModel"
-      :model="selectedModel"
+      :entity="selectedModel"
+      entity-label="ce modèle"
       @close="showDeleteModelModal = false; selectedModel = null"
       @confirmed="confirmDeleteModel"
     />
@@ -112,14 +118,16 @@ import { RouterLink } from 'vue-router'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import { useQuery, useQueries } from '@tanstack/vue-query'
 import { materialModelsApi } from '@/api/endpoints/materialModels'
+import { useLocations } from '@/composables/useLocations'
 import { useDeleteMaterialModel } from '@/composables/useMaterialModels'
 import { useToast } from '@/composables/useToast'
 import DataTable from '@/components/DataTable.vue'
+import { getLocationParentChildPath } from '@/utils/locationUtils'
+import type { MaterialModel } from '@/types'
 import StatusBadge from '@/components/StatusBadge.vue'
 import CreateModelModal from '@/components/modals/CreateModelModal.vue'
 import EditModelModal from '@/components/modals/EditModelModal.vue'
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
-import type { MaterialModel } from '@/types'
 import { formatDate } from '@/utils/formatDate'
 
 // Queries
@@ -127,6 +135,9 @@ const { data: modelsResponse, isLoading: isLoadingModels } = useQuery({
   queryKey: ['material-models'],
   queryFn: () => materialModelsApi.list(),
 })
+
+const { data: locations } = useLocations()
+const allLocations = computed(() => locations.value ?? [])
 
 // Extraire le tableau de modèles de la réponse paginée
 const models = computed(() => modelsResponse.value?.data || [])
@@ -193,6 +204,7 @@ const modelColumns = [
   { key: 'name', label: 'Nom', sortable: true },
   { key: 'categories', label: 'Catégories', sortable: false },
   { key: 'location', label: 'Emplacement', sortable: true },
+  { key: 'taillePointure', label: 'Taille/Pointure', sortable: true },
   { key: 'etat', label: 'Statuts', sortable: true },
   { key: 'codeBarre', label: 'Code-barres', sortable: true },
   { key: 'mainImageUrl', label: 'Image', sortable: false },
@@ -207,8 +219,20 @@ const handleEditModel = (model: MaterialModel) => {
 }
 
 const handleDeleteModel = (model: MaterialModel) => {
-  // TODO: Implémenter la suppression
-  console.log('Delete model:', model)
+  selectedModel.value = model
+  showDeleteModelModal.value = true
+}
+
+const confirmDeleteModel = async () => {
+  if (!selectedModel.value) return
+  try {
+    await deleteModelMutation.mutateAsync(selectedModel.value.id)
+    toast.success('Modèle supprimé avec succès')
+    showDeleteModelModal.value = false
+    selectedModel.value = null
+  } catch (error: any) {
+    toast.error(error?.message || 'Erreur lors de la suppression du modèle')
+  }
 }
 
 const handleModelCreated = () => {

@@ -158,9 +158,14 @@ const isSubItemActive = (href: string) => {
   if (href === '/') {
     return route.path === '/'
   }
-  // Pour les routes avec query params, on vérifie si le path commence par la base
-  const basePath = href.split('?')[0]
-  return route.path.startsWith(basePath)
+  const [basePath, queryPart] = href.split('?')
+  if (!route.path.startsWith(basePath)) return false
+  // Pour les routes avec query (ex. /settings?tab=locations), comparer le tab
+  if (queryPart) {
+    const tabValue = queryPart.split('=')[1]
+    return route.query.tab === (tabValue ?? '')
+  }
+  return true
 }
 
 // Gérer le clic sur un sous-item - ne pas fermer le menu pour rester ouvert lors de la navigation

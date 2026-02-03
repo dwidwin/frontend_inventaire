@@ -276,7 +276,6 @@ const saleColumns = [
 // Actions pour les produits
 const handleEditProduct = (product: Product) => {
   // TODO: Implémenter modal d'édition
-  console.log('Edit product:', product)
 }
 
 const handleDeleteProduct = async (product: Product) => {
@@ -292,7 +291,6 @@ const handleDeleteProduct = async (product: Product) => {
 // Actions pour le stock
 const handleEditStock = (stock: Stock) => {
   // TODO: Implémenter modal d'édition/ajustement
-  console.log('Edit stock:', stock)
 }
 </script>
 

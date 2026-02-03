@@ -11,7 +11,7 @@
       <!-- Contenu -->
       <div class="px-6 py-4">
         <p class="text-sm text-gray-600 mb-4">
-          Êtes-vous sûr de vouloir supprimer {{ entityType === 'model' ? 'ce modèle' : 'cet élément' }} ?
+          Êtes-vous sûr de vouloir supprimer {{ entityLabel }} ?
         </p>
         
         <div v-if="entity" class="p-3 bg-gray-50 border border-gray-200 rounded-lg mb-4">
@@ -49,14 +49,9 @@
         <button
           @click="handleConfirm"
           type="button"
-          :disabled="isDeleting"
           class="btn btn-danger"
         >
-          <span v-if="isDeleting" class="flex items-center justify-center space-x-2">
-            <div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-            <span>Suppression...</span>
-          </span>
-          <span v-else>Supprimer</span>
+          Supprimer
         </button>
       </div>
     </div>
@@ -64,48 +59,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useDeleteMaterialModel } from '@/composables/useMaterialModels'
-import { useToast } from '@/composables/useToast'
-import { logger } from '@/utils/logger'
-import type { MaterialModel } from '@/types'
+/** Entité affichée dans la modale (modèle, catégorie, etc.). La suppression réelle est gérée par le parent via @confirmed. */
+export interface DeleteConfirmEntity {
+  id: string
+  name: string
+  mainImageUrl?: string | null
+  photoUrl?: string | null
+  codeBarre?: string | null
+  location?: { name: string } | null
+}
 
-const props = defineProps<{
-  model?: MaterialModel
-  item?: any // Pour compatibilité avec l'ancien code
-}>()
+const props = withDefaults(
+  defineProps<{
+    entity: DeleteConfirmEntity | null | undefined
+    /** Libellé pour le texte "Êtes-vous sûr de vouloir supprimer … ?" (ex. "ce modèle", "cette catégorie"). */
+    entityLabel?: string
+  }>(),
+  { entityLabel: 'cet élément' }
+)
 
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'confirmed'): void
 }>()
 
-const entity = computed(() => props.model || props.item)
-const entityType = computed(() => props.model ? 'model' : 'item')
-
-const deleteModelMutation = useDeleteMaterialModel()
-const toast = useToast()
-const isDeleting = ref(false)
-
-const handleConfirm = async () => {
-  if (!entity.value) return
-  
-  isDeleting.value = true
-  
-  try {
-    if (entityType.value === 'model') {
-      await deleteModelMutation.mutateAsync(entity.value.id)
-    } else {
-      // Fallback pour compatibilité
-      logger.warn('Suppression d\'item non supportée')
-    }
-    emit('confirmed')
-    emit('close')
-  } catch (error: any) {
-    const errorMessage = error?.message || 'Erreur lors de la suppression'
-    toast.error(errorMessage)
-  } finally {
-    isDeleting.value = false
-  }
+const handleConfirm = () => {
+  if (!props.entity) return
+  emit('confirmed')
+  emit('close')
 }
 </script>

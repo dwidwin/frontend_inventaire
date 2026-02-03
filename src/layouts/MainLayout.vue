@@ -143,22 +143,23 @@ const userMenuOpen = ref(false)
 // Navigation items de base (accessibles à tous)
 const navigationItems = computed(() => {
   const items = [
-    { name: 'Dashboard', href: '/', icon: 'HomeIcon' },
+    { name: 'Mon inventaire', href: '/', icon: 'HomeIcon' },
     { name: 'Catalogue', href: '/catalogue', icon: 'Squares2X2Icon' },
     { name: 'Notifications', href: '/notifications', icon: 'BellIcon' },
   ]
 
-  // Items accessibles aux managers
+  // Items accessibles aux managers (Équipes, Emplacements, Locations et ventes, Buvette, Dashboard)
   if (authStore.isManager) {
     items.push(
       { name: 'Équipes', href: '/teams', icon: 'UsersIcon' },
       { name: 'Emplacements', href: '/locations', icon: 'MapPinIcon' },
-      { name: 'Affectations', href: '/assignments', icon: 'UserGroupIcon' },
-      { name: 'Buvette', href: '/buvette', icon: 'CubeIcon' }
+      { name: 'Locations et ventes', href: '/transactions', icon: 'UserGroupIcon' },
+      { name: 'Buvette', href: '/buvette', icon: 'CubeIcon' },
+      { name: 'Dashboard', href: '/dashboard', icon: 'ChartBarIcon' }
     )
   }
 
-  // Items accessibles aux admins
+  // Paramètres (admin uniquement, avec sous-pages)
   if (authStore.isAdmin) {
     items.push({
       name: 'Paramètres',
@@ -167,10 +168,9 @@ const navigationItems = computed(() => {
       subItems: [
         { name: 'categories', label: 'Catégories', href: '/categories' },
         { name: 'models', label: 'Modèles', href: '/models' },
-        { name: 'transactions', label: 'Transactions', href: '/transactions' },
         { name: 'statuses', label: 'Statuts', href: '/statuses' },
         { name: 'users', label: 'Gestion des utilisateurs', href: '/users' },
-      ]
+      ],
     })
   }
 
@@ -179,7 +179,7 @@ const navigationItems = computed(() => {
 
 // Titre de la page actuelle
 const currentPageTitle = computed(() => {
-  // Vérifier d'abord les sous-items
+  // Vérifier d'abord les sous-items (ex. Paramètres)
   for (const item of navigationItems.value) {
     if ('subItems' in item && item.subItems) {
       const subItem = item.subItems.find(sub => {
@@ -191,13 +191,14 @@ const currentPageTitle = computed(() => {
       }
     }
   }
-  
+
   // Sinon, chercher l'item principal
   const item = navigationItems.value.find(item => {
     if (item.href === '/') {
       return route.path === '/'
     }
-    return route.path.startsWith(item.href)
+    const itemBase = item.href.split('?')[0]
+    return route.path.startsWith(itemBase)
   })
   return item?.name || 'Inventaire Club'
 })

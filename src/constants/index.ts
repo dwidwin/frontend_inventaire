@@ -13,7 +13,7 @@ export const TRANSACTION_TYPES = {
   SALE: 'sale',
 } as const
 
-// Statuts d'items courants
+/** Statuts des modèles de matériel (MaterialModel.etat). À aligner avec les valeurs backend (ex. en_stock, vendu, loué). */
 export const ITEM_STATUSES = {
   STOCK: 'stock',
   ASSIGNED: 'assigned',

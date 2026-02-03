@@ -32,9 +32,9 @@
       @edit="handleEdit"
       @delete="handleDelete"
     >
-      <template #cell-item="{ item }">
-        <div class="text-sm text-gray-900">{{ item.item?.model?.name }}</div>
-        <div class="text-xs text-gray-500">{{ item.item?.codeBarre }}</div>
+      <template #cell-model="{ item }">
+        <div class="text-sm text-gray-900">{{ item.model?.name ?? '-' }}</div>
+        <div class="text-xs text-gray-500">{{ item.model?.codeBarre ?? '' }}</div>
       </template>
       
       <template #cell-assignedTo="{ item }">
@@ -83,6 +83,22 @@
       @close="showCreateModal = false"
       @created="handleAssignmentCreated"
     />
+
+    <!-- Modal de clôture (Modifier) -->
+    <CloseAssignmentModal
+      v-if="selectedAssignment && showCloseModal"
+      :assignment="selectedAssignment"
+      @close="handleCloseModal"
+      @closed="handleAssignmentClosed"
+    />
+
+    <!-- Modal de confirmation clôture (Supprimer) -->
+    <ConfirmCloseAssignmentModal
+      v-if="selectedAssignment && showDeleteConfirmModal"
+      :assignment="selectedAssignment"
+      @close="handleCloseDeleteModal"
+      @confirmed="handleDeleteConfirmed"
+    />
   </div>
 </template>
 
@@ -95,6 +111,8 @@ import { assignmentsApi } from '@/api/endpoints/assignments'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import CreateAssignmentModal from '@/components/modals/CreateAssignmentModal.vue'
+import CloseAssignmentModal from '@/components/modals/CloseAssignmentModal.vue'
+import ConfirmCloseAssignmentModal from '@/components/modals/ConfirmCloseAssignmentModal.vue'
 import { formatDate } from '@/utils/formatDate'
 import type { Assignment } from '@/types'
 
@@ -109,11 +127,13 @@ const { data: assignments, isLoading } = useQuery({
 
 // État local
 const showCreateModal = ref(false)
+const showCloseModal = ref(false)
+const showDeleteConfirmModal = ref(false)
 const selectedAssignment = ref<Assignment | null>(null)
 
-// Colonnes du tableau
+// Colonnes du tableau (Assignment a model à la racine, pas item)
 const columns = [
-  { key: 'item', label: 'Item', sortable: true },
+  { key: 'model', label: 'Modèle', sortable: true },
   { key: 'assignedTo', label: 'Affecté à', sortable: true },
   { key: 'startAt', label: 'Début', sortable: true },
   { key: 'endAt', label: 'Fin', sortable: true },
@@ -123,19 +143,38 @@ const columns = [
 
 // Actions
 const handleEdit = (assignment: Assignment) => {
+  if (assignment.endAt) return // déjà clôturée
   selectedAssignment.value = assignment
-  // TODO: Ouvrir modal d'édition
-  console.log('Edit assignment:', assignment)
+  showCloseModal.value = true
 }
 
 const handleDelete = (assignment: Assignment) => {
+  if (assignment.endAt) return
   selectedAssignment.value = assignment
-  // TODO: Ouvrir modal de confirmation
-  console.log('Delete assignment:', assignment)
+  showDeleteConfirmModal.value = true
+}
+
+const handleCloseDeleteModal = () => {
+  showDeleteConfirmModal.value = false
+  selectedAssignment.value = null
+}
+
+const handleDeleteConfirmed = () => {
+  handleCloseDeleteModal()
+  queryClient.invalidateQueries({ queryKey: ['assignments'], exact: true })
+}
+
+const handleCloseModal = () => {
+  showCloseModal.value = false
+  selectedAssignment.value = null
 }
 
 const handleAssignmentCreated = () => {
-  // Invalider les queries pour rafraîchir la liste
-  queryClient.invalidateQueries({ queryKey: ['assignments'] })
+  queryClient.invalidateQueries({ queryKey: ['assignments'], exact: true })
+}
+
+const handleAssignmentClosed = () => {
+  handleCloseModal()
+  queryClient.invalidateQueries({ queryKey: ['assignments'], exact: true })
 }
 </script>

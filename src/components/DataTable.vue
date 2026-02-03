@@ -112,14 +112,14 @@
                 <div class="flex items-center justify-end space-x-2">
                   <button
                     v-if="showEdit"
-                    @click="$emit('edit', item)"
+                    @click="onEditClick(item)"
                     class="text-primary-600 hover:text-primary-900"
                   >
                     Modifier
                   </button>
                   <button
                     v-if="showDelete"
-                    @click="$emit('delete', item)"
+                    @click="onDeleteClick(item)"
                     class="text-danger-600 hover:text-danger-900"
                   >
                     Supprimer
@@ -163,8 +163,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, useSlots } from 'vue'
 import { MagnifyingGlassIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+
+const slots = useSlots()
 
 interface Column {
   key: string
@@ -215,7 +217,14 @@ const sortOrder = ref<'asc' | 'desc'>('asc')
 
 // Données filtrées
 const filteredData = computed(() => {
-  let result = (props.data ?? []).filter(Boolean)
+  // Normaliser props.data : accepter un tableau ou un objet avec propriété data
+  const raw = props.data
+  const safeData = Array.isArray(raw) 
+    ? raw 
+    : (raw && typeof raw === 'object' && 'data' in raw && Array.isArray((raw as { data?: unknown[] }).data))
+      ? (raw as { data: unknown[] }).data
+      : []
+  let result = safeData.filter(Boolean)
   
   // Recherche
   if (searchQuery.value) {
@@ -259,7 +268,7 @@ const startItem = computed(() => (currentPage.value - 1) * props.pageSize + 1)
 const endItem = computed(() => Math.min(currentPage.value * props.pageSize, totalItems.value))
 
 // Actions
-const hasActions = computed(() => props.showEdit || props.showDelete || !!$slots.actions)
+const hasActions = computed(() => props.showEdit || props.showDelete || !!slots.actions)
 
 // Utilitaires
 const getItemKey = (item: any, index: number) => {
@@ -297,6 +306,13 @@ const handleSort = (key: string) => {
     sortOrder.value = 'asc'
   }
   emit('sort', key, sortOrder.value)
+}
+
+function onEditClick(item: any) {
+  emit('edit', item)
+}
+function onDeleteClick(item: any) {
+  emit('delete', item)
 }
 
 // Reset pagination quand les données changent

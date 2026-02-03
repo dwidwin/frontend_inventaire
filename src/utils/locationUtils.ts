@@ -108,12 +108,9 @@ export function getLocationsWithIndent(
     })
   }
 
-  // Trier récursivement
-  const sortDeep = (nodes: Location[]) => {
-    nodes.sort((a, b) => a.name.localeCompare(b.name))
-    nodes.forEach((n) => n.children && n.children.length > 0 && sortDeep(n.children))
-  }
-  sortDeep(roots)
+  // Tri non mutant : retourne une copie triée (évite "target is readonly" avec Vue Query)
+  const getSorted = (nodes: Location[]) =>
+    [...nodes].sort((a, b) => a.name.localeCompare(b.name))
 
   // Parcourir l'arbre pour créer une liste plate avec indentation
   const result: LocationWithIndent[] = []
@@ -134,16 +131,15 @@ export function getLocationsWithIndent(
       displayText: `${indent}${node.name}`
     })
 
-    // Parcourir les enfants récursivement
+    // Parcourir les enfants récursivement (ordre trié, sans muter node.children)
     if (node.children && node.children.length > 0) {
-      sortDeep(node.children)
-      node.children.forEach((child) => {
+      getSorted(node.children).forEach((child) => {
         traverse(child, level + 1, visited)
       })
     }
   }
 
-  roots.forEach((root) => {
+  getSorted(roots).forEach((root) => {
     traverse(root, 0)
   })
 
@@ -167,17 +163,15 @@ export function buildLocationTree(
   const hasAnyChildren = allLocations.some((l) => l.children && l.children.length > 0)
   
   if (hasAnyChildren) {
-    // Si les enfants sont déjà populés, utiliser directement la structure
+    // Si les enfants sont déjà populés, cloner l'arbre puis trier le clone
+    // (les données Vue Query sont readonly, on ne peut pas muter en place)
     const roots = allLocations.filter((l) => !l.parentId && !l.parent)
-    
-    // Trier récursivement
-    const sortDeep = (nodes: Location[]) => {
-      nodes.sort((a, b) => a.name.localeCompare(b.name))
-      nodes.forEach((n) => n.children && sortDeep(n.children || []))
-    }
-    sortDeep(roots)
-    
-    return roots
+    const cloneTree = (nodes: Location[]): Location[] =>
+      [...nodes].sort((a, b) => a.name.localeCompare(b.name)).map((n) => ({
+        ...n,
+        children: n.children?.length ? cloneTree(n.children) : n.children
+      }))
+    return cloneTree(roots)
   }
 
   // Sinon, construire l'arbre hiérarchique manuellement
@@ -210,7 +204,7 @@ export function buildLocationTree(
     }
   })
 
-  // Trier récursivement
+  // Trier récursivement (roots est construit par nous, donc mutable)
   const sortDeep = (nodes: Location[]) => {
     nodes.sort((a, b) => a.name.localeCompare(b.name))
     nodes.forEach((n) => n.children && sortDeep(n.children || []))
@@ -240,8 +234,9 @@ export function getLocationParentChildPath(
     return location.name
   }
 
-  // Chercher le parent soit via parentId, soit via la référence parent imbriquée
-  const parentId = location.parentId || location.parent?.id
+  // Résoudre l'emplacement complet depuis la liste (l'API peut renvoyer location sans parentId sur le modèle)
+  const fullLocation = allLocations.find(l => l.id === location.id) || location
+  const parentId = fullLocation.parentId || fullLocation.parent?.id
 
   if (parentId) {
     const parent = allLocations.find(l => l.id === parentId)
@@ -252,6 +247,41 @@ export function getLocationParentChildPath(
 
   // Pas de parent trouvé, retourner juste le nom de l'emplacement
   return location.name
+}
+
+/**
+ * Retourne l'ID d'un emplacement et tous les IDs de ses sous-emplacements (récursif).
+ * Utile pour filtrer par emplacement "parent" et inclure tous les modèles des enfants.
+ *
+ * @param locationId - ID de l'emplacement parent
+ * @param allLocations - Liste complète des emplacements (plate, avec parentId)
+ * @returns Tableau d'IDs : [locationId, ...ids des descendants]
+ */
+export function getLocationIdsIncludingDescendants(
+  locationId: string,
+  allLocations: Location[] | undefined
+): string[] {
+  if (!locationId || !allLocations?.length) {
+    return locationId ? [locationId] : []
+  }
+
+  const byParent = new Map<string, Location[]>()
+  for (const loc of allLocations) {
+    const pid = loc.parentId ?? loc.parent?.id ?? ''
+    if (!byParent.has(pid)) byParent.set(pid, [])
+    byParent.get(pid)!.push(loc)
+  }
+
+  const result: string[] = []
+  const collect = (id: string) => {
+    result.push(id)
+    const children = byParent.get(id) ?? []
+    for (const child of children) {
+      collect(child.id)
+    }
+  }
+  collect(locationId)
+  return result
 }
 
 

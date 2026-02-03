@@ -30,7 +30,7 @@
           <!-- Filtre par catégorie -->
           <select
             v-model="selectedCategoryId"
-            class="form-select"
+            class="form-select flex-1 min-w-0"
           >
             <option value="">Toutes les catégories</option>
             <option
@@ -45,7 +45,7 @@
           <!-- Filtre par emplacement -->
           <select
             v-model="selectedLocationId"
-            class="form-select"
+            class="form-select flex-1 min-w-0"
           >
             <option value="">Tous les emplacements</option>
             <option
@@ -57,13 +57,54 @@
             </option>
           </select>
 
-          <!-- Bouton réinitialiser -->
-          <button
-            @click="resetFilters"
-            class="btn btn-secondary btn-sm"
+          <!-- Filtre par Taille/Pointure (même style que les autres selects, sélection multiple) -->
+          <div
+            v-if="distinctSizes.length > 0"
+            ref="taillePointureDropdownRef"
+            class="relative flex-1 min-w-[180px]"
           >
-            Réinitialiser
-          </button>
+            <button
+              type="button"
+              class="form-select cursor-pointer relative text-left bg-white bg-none appearance-none"
+              :class="{ 'ring-2 ring-primary-500 border-primary-500': isTaillePointureOpen }"
+              @click="isTaillePointureOpen = !isTaillePointureOpen"
+            >
+              <span class="block truncate pr-8 text-gray-700">
+                {{ taillePointureLabel }}
+              </span>
+              <ChevronDownIcon
+                class="absolute right-2 top-1/2 h-5 w-5 -translate-y-1/2 pointer-events-none text-gray-400"
+                :class="{ 'rotate-180': isTaillePointureOpen }"
+              />
+            </button>
+            <Transition
+              enter-active-class="transition ease-out duration-100"
+              enter-from-class="opacity-0"
+              enter-to-class="opacity-100"
+              leave-active-class="transition ease-in duration-75"
+              leave-from-class="opacity-100"
+              leave-to-class="opacity-0"
+            >
+              <div
+                v-show="isTaillePointureOpen"
+                class="absolute z-10 mt-1 w-full rounded-md border border-gray-200 bg-white py-1 shadow-lg max-h-60 overflow-auto"
+              >
+                <label
+                  v-for="size in distinctSizes"
+                  :key="size"
+                  class="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-50"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="selectedSizes.includes(size)"
+                    class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    @change="toggleTaillePointure(size)"
+                  />
+                  <span>{{ size }}</span>
+                </label>
+              </div>
+            </Transition>
+          </div>
         </div>
 
         <!-- Filtre par état avec badges -->
@@ -187,16 +228,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, unref } from 'vue'
+import { ref, computed, unref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
-import { MagnifyingGlassIcon, CubeIcon } from '@heroicons/vue/24/outline'
+import { MagnifyingGlassIcon, CubeIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { useMaterialModels } from '@/composables/useMaterialModels'
 import { useCategories } from '@/composables/useCategories'
 import { useLocations } from '@/composables/useLocations'
 import { useStatuses } from '@/composables/useStatuses'
 import { useQueries } from '@tanstack/vue-query'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
-import { getLocationsWithIndent } from '@/utils/locationUtils'
+import { getLocationsWithIndent, getLocationIdsIncludingDescendants } from '@/utils/locationUtils'
 import StatusBadge from '@/components/StatusBadge.vue'
 import type { MaterialModel, Status } from '@/types'
 
@@ -274,12 +315,52 @@ const categoriesWithIndent = computed(() => getCategoriesWithIndent(categories.v
 // Emplacements avec indentation hiérarchique
 const locationsWithIndent = computed(() => getLocationsWithIndent(locations.value))
 
+// Liste des tailles/pointures distinctes (pour le filtre catalogue)
+const distinctSizes = computed(() => {
+  const models = modelsArray.value || []
+  const set = new Set<string>()
+  models.forEach((m: MaterialModel) => {
+    const v = m.taillePointure?.trim()
+    if (v) set.add(v)
+  })
+  return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+})
+
 // État local pour les filtres
 const searchQuery = ref('')
 const selectedCategoryId = ref('')
 const selectedLocationId = ref('')
+const selectedSizes = ref<string[]>([])
 const selectedStatuses = ref<string[]>([])
 const showAllStatuses = ref(false)
+
+// Filtre Taille/Pointure (dropdown personnalisé, même style que les autres selects)
+const isTaillePointureOpen = ref(false)
+const taillePointureDropdownRef = ref<HTMLElement | null>(null)
+const taillePointureLabel = computed(() => {
+  if (selectedSizes.value.length === 0) return 'Toutes les tailles'
+  if (selectedSizes.value.length <= 2) return selectedSizes.value.join(', ')
+  return `${selectedSizes.value.length} tailles`
+})
+const toggleTaillePointure = (size: string) => {
+  const i = selectedSizes.value.indexOf(size)
+  if (i > -1) {
+    selectedSizes.value = selectedSizes.value.filter((_, idx) => idx !== i)
+  } else {
+    selectedSizes.value = [...selectedSizes.value, size].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+  }
+}
+const closeTaillePointureOnClickOutside = (e: MouseEvent) => {
+  if (taillePointureDropdownRef.value && !taillePointureDropdownRef.value.contains(e.target as Node)) {
+    isTaillePointureOpen.value = false
+  }
+}
+onMounted(() => {
+  document.addEventListener('click', closeTaillePointureOnClickOutside)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeTaillePointureOnClickOutside)
+})
 
 // Limiter l'affichage à 5 statuts sur mobile
 const MAX_STATUSES_MOBILE = 5
@@ -342,15 +423,6 @@ const getStatusButtonClasses = (status: Status) => {
   return groupColors[status.group] || 'bg-gray-100 text-gray-800'
 }
 
-// Fonction pour réinitialiser les filtres
-const resetFilters = () => {
-  searchQuery.value = ''
-  selectedCategoryId.value = ''
-  selectedLocationId.value = ''
-  selectedStatuses.value = []
-  showAllStatuses.value = false
-}
-
 // Modèles filtrés
 const filteredModels = computed(() => {
   // Utiliser modelsArray qui garantit toujours un tableau
@@ -365,12 +437,14 @@ const filteredModels = computed(() => {
       const codeBarre = model.codeBarre?.toLowerCase() || ''
       const locationName = model.location?.name?.toLowerCase() || ''
       const description = model.description?.toLowerCase() || ''
+      const taillePointure = model.taillePointure?.toLowerCase() || ''
       
       return modelName.includes(query) ||
              categoryNames.includes(query) ||
              codeBarre.includes(query) ||
              locationName.includes(query) ||
-             description.includes(query)
+             description.includes(query) ||
+             taillePointure.includes(query)
     })
   }
 
@@ -381,11 +455,21 @@ const filteredModels = computed(() => {
     )
   }
 
-  // Filtre par emplacement
+  // Filtre par emplacement (parent + tous les sous-emplacements)
   if (selectedLocationId.value) {
-    result = result.filter((model: MaterialModel) => 
-      model.location?.id === selectedLocationId.value
+    const locationIds = getLocationIdsIncludingDescendants(selectedLocationId.value, locations.value ?? undefined)
+    const locationIdSet = new Set(locationIds)
+    result = result.filter((model: MaterialModel) =>
+      model.location?.id != null && locationIdSet.has(model.location.id)
     )
+  }
+
+  // Filtre par Taille/Pointure (sélection multiple)
+  if (selectedSizes.value.length > 0) {
+    result = result.filter((model: MaterialModel) => {
+      const size = model.taillePointure?.trim()
+      return size && selectedSizes.value.includes(size)
+    })
   }
 
   // Filtre par état (sélection multiple)
