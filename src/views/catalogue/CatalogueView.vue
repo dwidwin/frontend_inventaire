@@ -221,6 +221,12 @@
               {{ model.codeBarre }}
             </span>
           </div>
+          <p class="mt-1 text-xs text-gray-500">
+            <span v-if="modelAssigneeDisplayMap[model.id]">
+              Affecté à : {{ modelAssigneeDisplayMap[model.id] }}
+            </span>
+            <span v-else class="text-gray-400">Non affecté</span>
+          </p>
         </div>
       </RouterLink>
     </div>
@@ -239,7 +245,8 @@ import { useQueries } from '@tanstack/vue-query'
 import { getCategoriesWithIndent } from '@/utils/categoryUtils'
 import { getLocationsWithIndent, getLocationIdsIncludingDescendants } from '@/utils/locationUtils'
 import StatusBadge from '@/components/StatusBadge.vue'
-import type { MaterialModel, Status } from '@/types'
+import { transactionsApi } from '@/api/endpoints'
+import type { MaterialModel, Status, TransactionItem, Transaction } from '@/types'
 
 // Queries
 const { data: modelsResponse, isLoading } = useMaterialModels()
@@ -306,6 +313,64 @@ const modelStatusesMap = computed(() => {
     }
   })
   
+  return map
+})
+
+// Récupérer les lignes de transaction par modèle (locations + ventes) pour afficher à qui est affecté le matériel
+const transactionItemsQueriesConfig = computed(() => {
+  const modelsList = modelsArray.value
+  if (!Array.isArray(modelsList)) return []
+  return modelsList.map((model) => ({
+    queryKey: ['transactions', 'model', model.id],
+    queryFn: () => transactionsApi.getItemsByModel(model.id),
+    enabled: !!model.id,
+  }))
+})
+
+const transactionItemsQueries = useQueries({
+  queries: transactionItemsQueriesConfig,
+})
+
+/** Nom de l'utilisateur/équipe à qui est affecté le matériel : location en cours (gratuite ou payante) ou vente. */
+function getAssigneeDisplayName(tx: Transaction | undefined): string | null {
+  if (!tx) return null
+  if (tx.counterpartyUser?.username) return tx.counterpartyUser.username
+  if (tx.counterpartyTeam?.name) return tx.counterpartyTeam.name
+  if (tx.externalName?.trim()) return tx.externalName.trim()
+  return null
+}
+
+// Mapper le nom de l'assigné actuel par modèle : location en cours (open, non rendue) ou acheteur (vente)
+const modelAssigneeDisplayMap = computed(() => {
+  const map: Record<string, string> = {}
+  const modelsList = modelsArray.value
+  if (!modelsList || modelsList.length === 0) return map
+
+  modelsList.forEach((model, index) => {
+    const queryResult = transactionItemsQueries.value[index]
+    if (!queryResult || !queryResult.isSuccess) return
+    const items = (unref(queryResult.data) || []) as TransactionItem[]
+    if (!Array.isArray(items)) return
+    // Priorité 1 : location en cours (open, non rendue)
+    const openRental = items.find(
+      (item) =>
+        (item.transaction as Transaction)?.type === 'rental' &&
+        (item.transaction as Transaction)?.status === 'open' &&
+        !item.returnedAt
+    )
+    if (openRental?.transaction) {
+      const name = getAssigneeDisplayName(openRental.transaction as Transaction)
+      if (name) map[model.id] = name
+      return
+    }
+    // Priorité 2 : vente (dernier acheteur, liste déjà en ordre DESC)
+    const saleItem = items.find((item) => (item.transaction as Transaction)?.type === 'sale')
+    if (saleItem?.transaction) {
+      const name = getAssigneeDisplayName(saleItem.transaction as Transaction)
+      if (name) map[model.id] = name
+    }
+  })
+
   return map
 })
 
